@@ -14,13 +14,15 @@ Graduating research enters through `/research-graduate`; behavioral changes
 made during implementation propagate back here (see
 [`../00-GENESIS/how-we-work.md`](../00-GENESIS/how-we-work.md)).
 
-## Status
+## Documents
 
-**Empty by design.** No design has graduated yet. The runtime is deliberately
-specified last, against decided research (constitution IV). The first document
-lands when [`01-RESEARCH/nex-runtime-substrate`](../01-RESEARCH/nex-runtime-substrate/README.md)
-graduates — expected to define the substrate choice, the workload contract(s),
-and the backend seam.
+| # | Document | Covers | Status |
+|---|---|---|---|
+| 0001 | [`0001-soulrealm-runtime.md`](0001-soulrealm-runtime.md) | The runtime architecture: single control plane on the op-log, the role×lifecycle workload model, per-workload identity, lifecycle-as-ops, pluggable backends, the NEX influence ledger | graduated from `nex-runtime-substrate` (episode 0002) |
+
+Read 0001 first — it is the map. It fixes the decided shape and marks the `[O]`
+sub-questions (minter signing story, multi-node placement, backend details)
+that need their own design/spec pass before they are built.
 
 ## Status legend (used once documents exist)
 

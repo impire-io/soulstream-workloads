@@ -19,25 +19,34 @@ are as load-bearing as the shipped code.
 **The project was founded** ([episode 0001](0001-genesis.md)): soulrealm is the
 runtime companion to soulstream — soulstream records, soulrealm runs. The hq is
 bootstrapped from the sibling project's proven structure, with a constitution
-adapted to a runtime project whose non-negotiable article is the **substrate
-boundary** (soulrealm never becomes a store of record; everything worth keeping
-flows back to topics as ops). No code exists yet, by design (constitution IV):
-the runtime is specified last, against decided research.
+whose non-negotiable article is the **substrate boundary** (soulrealm never
+becomes a store of record; everything worth keeping flows back to topics as
+ops).
 
-**The one open gate is the substrate question**
-([`01-RESEARCH/nex-runtime-substrate`](../01-RESEARCH/nex-runtime-substrate/README.md)):
-is NEX the right execution substrate, and is `agent`/`tool` the right way to
-model workloads on it — as a NEX workload type, a convention over NEX's native
-service/function workloads, or soulstream persona metadata? Desk research
-confirms NEX gives per-workload scoped credentials and a pluggable backend seam
-for free; the open question is the modelling layer, with the working hypothesis
-that role (`agent`/`tool`) is orthogonal to NEX's lifecycle axis
-(`service`/`function`) and should live at the least-invasive layer. Four bars
-are pre-registered; no spike has run yet. Everything in the roadmap's Phase 1
-is gated on this closing.
+**The substrate question is decided** ([episode
+0002](0002-the-substrate-decision.md)): after a live NEX spike and a source
+read, **soulrealm builds its own runtime — NEX as influence, not dependency —
+with the soulstream op-log as the single control plane.** Measured: role
+(`agent`/`tool`) is orthogonal to lifecycle (`service`/`function`/`job`); NEX
+issues scoped per-workload identity for free and is embeddable via public
+options (so a fork was never forced). The `[judgment]` call to rebuild rather
+than embed turned on **not running a second control plane** (`$NEX.control.*`)
+beside the op-log — recorded after teach-back, with the embed case argued at
+full strength first. That opened design doc
+[`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md): the
+single-plane runtime, the role×lifecycle model, a realm-semantic per-workload
+minter, lifecycle-as-ops, and pluggable backends, with an honest NEX influence
+ledger and its `[O]` open sub-questions.
+
+**Next:** the runtime's first slice via the spec-kit flow — Phase 1 M1.1
+(declare an `agent`/`service`, mint a persona-scoped credential, launch it
+native, post a turn as its persona, lifecycle visible as ops). The minter
+signing/trust story, multi-node placement-as-ops, and the backend interface are
+the named open questions to pin down in `/speckit-specify` + `/speckit-plan`.
 
 ## Episode index
 
 | # | Episode |
 |---|---|
 | 0001 | [Genesis: soulrealm gets an HQ](0001-genesis.md) |
+| 0002 | [The substrate decision: a from-scratch, NEX-influenced runtime](0002-the-substrate-decision.md) |

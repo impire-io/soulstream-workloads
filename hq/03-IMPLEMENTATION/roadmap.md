@@ -6,22 +6,25 @@ IV).
 
 ## Where we are
 
-**Genesis.** The hq is bootstrapped ([episode 0001](../04-JOURNEY/0001-genesis.md)).
-No design has graduated; no code exists. The one open gate is the substrate
-question.
+**Substrate decided; design open.** The hq is bootstrapped ([episode
+0001](../04-JOURNEY/0001-genesis.md)) and the substrate question is closed
+([episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)): a from-scratch,
+NEX-influenced runtime with the op-log as the single control plane, specified in
+design [`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md).
+No code yet. Phase 0 is closed; Phase 1 is now unblocked.
 
-## Phase 0 — Substrate (research)
+## Phase 0 — Substrate (research) — ✅ closed 2026-07-22
 
-**Gate:** [`01-RESEARCH/nex-runtime-substrate`](../01-RESEARCH/nex-runtime-substrate/README.md)
-graduates. Decides: NEX yes/no; the `agent`/`tool` modelling axis and the
-layer it lives at; the backend seam.
+**Gate met.** `nex-runtime-substrate` graduated to design (episode 0002).
+Decided: NEX is influence, not dependency; `agent`/`tool` is a role axis
+orthogonal to the `service`/`function`/`job` lifecycle axis; the backend seam
+is soulrealm-owned (constitution III), emitting ops rather than a second
+control plane.
 
-Nothing in later phases is designed until this closes.
+## Phase 1 — First workload (design → build) — *unblocked*
 
-## Phase 1 — First workload (design → build) — *gated on Phase 0*
-
-Exit-criteria sketch, to be made precise when Phase 0 graduates into a design
-doc:
+Runs the spec-kit flow against design 0001 (§9 acceptance criteria). Exit
+criteria, to be made precise in `/speckit-specify` + `/speckit-plan`:
 
 - **M1.1 — Launch one agent.** A single long-lived agent persona launched onto
   a real NEX node under the decided contract, receiving scoped credentials,

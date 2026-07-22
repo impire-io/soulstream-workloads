@@ -42,6 +42,7 @@ the work produces.
 
 ## Active topics
 
-| Slug | Question | State |
-|---|---|---|
-| [`nex-runtime-substrate`](nex-runtime-substrate/README.md) | Is NEX the right substrate, and is `agent`/`tool` the right way to model workloads on it? | active |
+*None open.* The `nex-runtime-substrate` topic graduated to design on
+2026-07-22 (journey [episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)
+→ design [`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md));
+its folder was removed, with the full trail in git history.
