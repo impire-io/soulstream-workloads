@@ -15,10 +15,13 @@ Soulstream is the record; soulrealm is the room.
 
 ## Status
 
-**Genesis (2026-07-22).** No code yet, by design. The one open gate is the
-substrate research topic:
-[`hq/01-RESEARCH/nex-runtime-substrate`](hq/01-RESEARCH/nex-runtime-substrate/README.md).
-Nothing is designed or built until it graduates (constitution IV).
+**Substrate decided (2026-07-22); no code yet.** The runtime is a from-scratch,
+**NEX-influenced** build with the soulstream op-log as the *single control
+plane* — decided in [journey
+0002](hq/04-JOURNEY/0002-the-substrate-decision.md), specified in design
+[`0001-soulrealm-runtime.md`](hq/02-DESIGN/0001-soulrealm-runtime.md). NEX is
+influence, not a dependency. Next is Phase 1's first slice via the spec-kit
+flow (roadmap).
 
 ## The rules that bind every change
 

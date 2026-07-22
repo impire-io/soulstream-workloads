@@ -22,7 +22,8 @@ gate. No code exists yet — deliberately, per constitution IV.
 The founder's opening architecture question — run agents/tools on **NEX**, the
 NATS execution engine, with `agent` and `tool` as workload types — was **not
 decided**; it was opened as the first research topic
-([`nex-runtime-substrate`](../01-RESEARCH/nex-runtime-substrate/README.md))
+(`nex-runtime-substrate`, since graduated →
+[episode 0002](0002-the-substrate-decision.md))
 with four pre-registered bars. Desk research on NEX v0.4.1 found the strong
 part of the fit is real [mechanism-argument]: NEX delivers per-workload scoped
 NATS credentials (constitution II for free) and a pluggable-nexlet backend

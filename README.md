@@ -18,19 +18,30 @@ the record; soulrealm is the room.
 
 ## Status
 
-**Genesis (2026-07-22).** Nothing is built yet, on purpose: the project runs
-research-before-design (see [hq/](hq/README.md)), and the first research topic
-is open — [is NEX the right substrate?](hq/01-RESEARCH/nex-runtime-substrate/README.md)
+**Substrate decided (2026-07-22); design open, no code yet.** The project runs
+research-before-design (see [hq/](hq/README.md)). The opening question — what
+runtime substrate — is settled ([journey
+0002](hq/04-JOURNEY/0002-the-substrate-decision.md)): after a live
+[NEX](https://github.com/synadia-io/nex) spike and source read, **soulrealm
+builds its own runtime — NEX as influence, not dependency — with the soulstream
+op-log as the single control plane.** The architecture is in design doc
+[`0001-soulrealm-runtime.md`](hq/02-DESIGN/0001-soulrealm-runtime.md).
 
-The working hypothesis under investigation, not yet a decision:
+The decided shape:
 
-- **NEX** (the [NATS execution engine](https://github.com/synadia-io/nex)) as
-  the deployment substrate — NATS-native control plane, pluggable *nexlets*
-  per runtime, scoped NATS credentials per workload.
-- Two **workload contracts**: `agent` (long-lived persona that participates in
-  topics) and `tool` (capability other workloads call).
-- **Isolation backends** — native process, Docker/OCI, Firecracker,
-  Kubernetes — kept orthogonal to the contracts, pluggable per node.
+- **One control plane.** A workload's whole visible life is operations on
+  topics; there is no second coordination system beside the op-log.
+- **Two orthogonal axes.** *Role* — `agent` (long-lived persona that
+  participates in topics) and `tool` (capability other workloads call) — is
+  independent of *lifecycle* — `service` / `function` / `job` (borrowed from
+  NEX).
+- **Realm-semantic identity.** Each workload gets a freshly minted NATS user
+  scoped to its persona's subjects, delivered via an xkey-encrypted env
+  (NEX's `CredVendor` design, reimplemented).
+- **Isolation backends** — native process, Docker/OCI, Firecracker, Kubernetes
+  — kept orthogonal to the contract, pluggable per node.
+
+Next: the first runtime slice through the spec-kit flow (roadmap Phase 1).
 
 ## Layout
 
