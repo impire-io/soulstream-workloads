@@ -1,0 +1,15 @@
+# Local Claude settings — never committed (global rule)
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# Go build output (once the module exists)
+/bin/
+/dist/
+*.test
+*.out
+
+# Editor / IDE
+.idea/
+*.swp
