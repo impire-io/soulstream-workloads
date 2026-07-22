@@ -57,10 +57,10 @@ whole gate green. The plan's bet held: **no new soulstream vocabulary** —
 soulrealm is the work.md "runner". Six packages (declaration, minter,
 backend/native, runner, two cmds), pure logic split from I/O so most tests need
 no server; the native backend proves it does not leak soulrealm's secrets into
-a workload. **One gap:** SC-003 (the minted credential is *enforced* to its
-scope) needs an operator-mode NATS harness — the scope is built + unit-tested,
-not yet enforced by the open in-process server. **Next:** the operator-mode
-harness to close SC-003, then M1.2 (a `tool` workload).
+a workload. **All five success criteria met** — SC-003 (scope *enforcement*)
+closed with an in-process operator-mode server (`natstest.StartOperator`) that
+denies out-of-scope publishes. **Next:** M1.2 (a `tool` workload the agent
+discovers and calls).
 
 ## Episode index
 

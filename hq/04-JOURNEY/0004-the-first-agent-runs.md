@@ -45,13 +45,13 @@ both on the one topic (SC-001, SC-002).
   signalled-exit → `ExitStatus.Signal`; runner nonzero → `work.abandon`;
   scratch reaped on `Wait`). A live kill-mid-integration test is not written.
 - **SC-005** (reject backend field) — PASS, declaration unit test.
-- **SC-003** (the minted credential cannot publish outside its scope) — **NOT
-  verified.** The scope is *constructed* correctly (minter unit test) but its
-  *enforcement* is not proven: the in-process test server runs open (no
-  operator mode), so it does not deny out-of-scope publishes. Closing SC-003
-  needs an operator-mode NATS harness (an account + signing key + resolver, the
-  shape of nex's `_examples/operator_mode`). That is the one remaining
-  verification for M1.1 and the next task.
+- **SC-003** (the minted credential cannot publish outside its scope) — **now
+  PASS** (closed same day, commit b696c82). `internal/natstest.StartOperator`
+  brings up an in-process operator-mode server (operator + account + signing
+  key + resolver + system account) that enforces user JWT permissions;
+  `TestMintedCredentialScopeEnforced` proves a minted credential may publish on
+  its topic's ops subject but is denied any subject outside its scope. Scope is
+  now *enforced*, not just constructed. **All five success criteria met.**
 
 **What it opened / refined.** Design 0001 §4 was refined during the plan: for a
 local single-node fork, creds inject directly into the child env; the
