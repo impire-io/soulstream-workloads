@@ -91,9 +91,12 @@ soulrealm's own:
   persona's soulstream subjects (e.g. publish `SOULSTREAM.TOPICS.OPS.<topics
   the persona works>`, its own inbox, the object store it may read/write).
   Unlike stock NEX, the scope is *realm-semantic* from the start.
-- **Delivery** `[D]` — credentials reach the workload through an
-  **xkey-encrypted environment**, so the launching node cannot be a
-  man-in-the-middle on the workload's secrets (NEX's mechanism, kept).
+- **Delivery** `[D]` — credentials reach the workload through its environment.
+  For a **local** process soulrealm forks itself (single node) there is no
+  untrusted intermediary, so the env is injected directly (refined by spec 001
+  research D4). The **xkey-encrypted environment** (NEX's mechanism, kept) is
+  the delivery for when a start request travels over NATS to a node soulrealm
+  does not control — a multi-node concern, added with multi-node.
 - **Trust** `[O]` — the realm's NATS account must trust the soulrealm signing
   key. Operator-mode provisioning (which account signs, how the key is held per
   node vs central) is an open sub-question, scoped to soulstream + soulrealm:

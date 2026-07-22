@@ -49,9 +49,15 @@ soulrealm depends on soulstream and nothing else — no Impire-platform services
 (identity, tenancy, vault) for now. The minter stays a seam for a future
 external authority, but none is designed in.
 
-**Next:** `/speckit-plan` against the M1.1 spec — pinning the Go structure, the
-execution-lifecycle op vocabulary (extending soulstream's work extension), and
-the minter interface.
+**The M1.1 plan is drafted** (`specs/001-launch-an-agent/` plan + research +
+data-model + contracts + quickstart). Headline finding: the slice needs **no
+new soulstream vocabulary** — soulrealm is the "runner" persona work.md stage 4
+already anticipates, and lifecycle maps onto the existing
+`work.open/claim/done/abandon` ops. Two peer identities (runner + workload), a
+realm-semantic minter, native-backend `os/exec`, and (refining design 0001 §4)
+direct env cred-injection for local single-node exec (xkey delivery is a
+multi-node concern). **Next:** `/speckit-tasks` → implementation (creates the Go
+module).
 
 ## Episode index
 

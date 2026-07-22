@@ -33,7 +33,11 @@ criteria, made precise per feature in `specs/NNN-*/`:
   topic (posts a turn attributed to the persona), lifecycle visible as ops
   (constitution V). Native (process) backend only. Signing story resolved in
   the spec: soulrealm holds the realm-account key (soulstream-only scope,
-  episode 0003; no Impire-platform dependency). Next: `/speckit-plan`.
+  episode 0003; no Impire-platform dependency). **Plan drafted**
+  ([`plan.md`](../../specs/001-launch-an-agent/plan.md) + research/data-model/
+  contracts/quickstart) — headline: M1.1 needs **no new soulstream vocabulary**,
+  soulrealm is the work.md "runner" using `work.open/claim/done/abandon`. Next:
+  `/speckit-tasks`.
 - **M1.2 — Launch one tool, called by the agent.** A tool workload the agent
   discovers and calls over the realm transport, under the same identity model.
 - **M1.3 — Second backend.** The same two workload declarations run unchanged
