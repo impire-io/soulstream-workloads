@@ -1,0 +1,23 @@
+module github.com/impire-io/soulrealm
+
+go 1.26.2
+
+replace github.com/impire-io/soulstream => ../soulstream
+
+require (
+	github.com/impire-io/soulstream v0.0.0-00010101000000-000000000000
+	github.com/nats-io/jwt/v2 v2.8.2
+	github.com/nats-io/nkeys v0.4.16
+)
+
+require (
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/gowebpki/jcs v1.0.1 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/nats-io/nats.go v1.52.0 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
+	github.com/synadia-io/orbit.go/natscontext v0.1.2 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+)
