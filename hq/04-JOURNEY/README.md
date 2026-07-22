@@ -38,11 +38,20 @@ single-plane runtime, the role×lifecycle model, a realm-semantic per-workload
 minter, lifecycle-as-ops, and pluggable backends, with an honest NEX influence
 ledger and its `[O]` open sub-questions.
 
-**Next:** the runtime's first slice via the spec-kit flow — Phase 1 M1.1
-(declare an `agent`/`service`, mint a persona-scoped credential, launch it
-native, post a turn as its persona, lifecycle visible as ops). The minter
-signing/trust story, multi-node placement-as-ops, and the backend interface are
-the named open questions to pin down in `/speckit-specify` + `/speckit-plan`.
+**The first slice is specced** ([`specs/001-launch-an-agent/spec.md`](../../specs/001-launch-an-agent/spec.md)):
+declare an `agent`/`service`, mint a persona-scoped credential, launch it
+native, post a turn as its persona, lifecycle visible as ops — no second
+control plane. Minimal spec-kit scaffolding is in place (`.specify/` with the
+constitution symlinked). The signing story is resolved soulrealm-held.
+
+**Scope is soulstream-only** ([episode 0003](0003-soulstream-only-scope.md)):
+soulrealm depends on soulstream and nothing else — no Impire-platform services
+(identity, tenancy, vault) for now. The minter stays a seam for a future
+external authority, but none is designed in.
+
+**Next:** `/speckit-plan` against the M1.1 spec — pinning the Go structure, the
+execution-lifecycle op vocabulary (extending soulstream's work extension), and
+the minter interface.
 
 ## Episode index
 
@@ -50,3 +59,4 @@ the named open questions to pin down in `/speckit-specify` + `/speckit-plan`.
 |---|---|
 | 0001 | [Genesis: soulrealm gets an HQ](0001-genesis.md) |
 | 0002 | [The substrate decision: a from-scratch, NEX-influenced runtime](0002-the-substrate-decision.md) |
+| 0003 | [Soulstream-only scope: the platform waits](0003-soulstream-only-scope.md) |

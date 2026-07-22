@@ -32,8 +32,8 @@ criteria, made precise per feature in `specs/NNN-*/`:
   contract, minted a persona-scoped credential, participating in a soulstream
   topic (posts a turn attributed to the persona), lifecycle visible as ops
   (constitution V). Native (process) backend only. Signing story resolved in
-  the spec: soulrealm-held realm-account key for this slice, impire-tenants
-  delegation as a named seam. Next: `/speckit-plan`.
+  the spec: soulrealm holds the realm-account key (soulstream-only scope,
+  episode 0003; no Impire-platform dependency). Next: `/speckit-plan`.
 - **M1.2 — Launch one tool, called by the agent.** A tool workload the agent
   discovers and calls over the realm transport, under the same identity model.
 - **M1.3 — Second backend.** The same two workload declarations run unchanged

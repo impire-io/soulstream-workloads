@@ -149,10 +149,10 @@ the same declaration for re-use unchanged by the M1.3 Docker backend.
   cannot sign), soulrealm MUST refuse to launch and surface an observable
   error — no silent partial start.
 - **FR-009**: soulrealm MUST obtain its signing authority (the realm-account
-  signing key + root account public key) through a single named seam. For this
-  slice the seam resolves to a soulrealm-held key; the seam MUST allow later
-  delegation to impire-tenants (the platform's sole writer of account signing
-  keys) **without changing the workload contract**.
+  signing key + root account public key) through a single named seam. The seam
+  resolves to a **soulrealm-held key**; it MUST be shaped so an external signing
+  authority could take over later **without changing the workload contract**,
+  but no such external dependency is designed in now (soulstream-only scope).
 - **FR-010**: Minted credentials MUST be bounded (expiry) and reaped when the
   workload exits; lifecycle ops MUST be emitted for both normal and abnormal
   exit.
@@ -162,8 +162,9 @@ the same declaration for re-use unchanged by the M1.3 Docker backend.
 - **Workload declaration** — role, lifecycle, persona ref, topic ref, artifact
   URI. Carries no backend field. The operator-facing contract.
 - **Minter** — mints per-persona scoped NATS users signed under the realm
-  account; fronts the signing-authority seam (soulrealm-held now,
-  impire-tenants later). Realm infrastructure, not a persona.
+  account; fronts the signing-authority seam (soulrealm-held; a future external
+  authority stays possible but is not built). Realm infrastructure, not a
+  persona.
 - **Persona-scoped credential** — a user JWT + seed whose permissions are
   limited to the persona's realm subjects; delivered xkey-encrypted; bounded
   lifetime.
@@ -197,14 +198,13 @@ the same declaration for re-use unchanged by the M1.3 Docker backend.
   object store, persona directory). Soulrealm runs *on* a realm; it does not
   provision one.
 - The realm's NATS runs in **operator mode** with a resolver that trusts the
-  realm account's signing key. Dev target: a local operator-mode server set up
-  with `nsc` (the shape of nex's `_examples/operator_mode`); production target:
-  the Impire platform account.
-- For this slice, soulrealm **holds the realm-account signing key directly**.
-  Delegating credential minting to **impire-tenants** — the platform's sole
-  writer of account signing keys — is the production path and a named seam
-  (FR-009), not built here. This keeps the first slice self-contained without
-  blocking on the impire-vault rebuild.
+  realm account's signing key, set up with `nsc` (the shape of nex's
+  `_examples/operator_mode`).
+- soulrealm **holds the realm-account signing key directly.** Scope for this
+  and every near-term slice is **soulstream + soulrealm only** — no dependency
+  on the wider Impire platform (identity, tenancy, vault). A future hand-off of
+  signing authority to an external service stays possible through the minter
+  seam (FR-009) but is not designed in now.
 - The exact op names for execution lifecycle (requested/started/exited …) are
   pinned down in `/speckit-plan` against soulstream's work-extension vocabulary;
   they extend, not fork, that vocabulary.

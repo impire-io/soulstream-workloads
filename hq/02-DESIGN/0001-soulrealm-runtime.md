@@ -27,6 +27,15 @@ NEX is **design influence, not a dependency.** Where NEX solved a problem well,
 soulrealm borrows the *shape* (named in §7) and reimplements it against the
 op-log, rather than importing its machinery and bridging two planes.
 
+**Dependency scope (decided 2026-07-22, episode 0003):** soulrealm depends on
+**soulstream only**. It provisions nothing of the wider Impire platform and
+takes no dependency on its services (identity, tenancy, vault) for now.
+Everything the runtime needs — realm, topics, personas, object store, and the
+account it mints credentials under — is soulstream's surface plus a
+soulrealm-held signing key. A future hand-off of signing authority to an
+external platform service stays *possible* through the minter seam (§4), but is
+explicitly not designed in now.
+
 ## 2. Principles this runtime is held to
 
 Straight from the constitution; every later section serves these.
@@ -87,8 +96,11 @@ soulrealm's own:
   man-in-the-middle on the workload's secrets (NEX's mechanism, kept).
 - **Trust** `[O]` — the realm's NATS account must trust the soulrealm signing
   key. Operator-mode provisioning (which account signs, how the key is held per
-  node vs central) is an open sub-question; it connects to the impire-tenants /
-  vault signing-key story and must be designed against it, not reinvented.
+  node vs central) is an open sub-question, scoped to soulstream + soulrealm:
+  soulrealm holds a realm-account signing key (dev: provisioned with `nsc`).
+  The minter is a seam, so an external signing authority could take over later
+  without changing the workload contract — but no such external dependency is
+  designed in now (see §1 dependency scope).
 
 ## 5. Lifecycle as ops (the single control plane)
 
