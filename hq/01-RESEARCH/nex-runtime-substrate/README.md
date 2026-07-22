@@ -136,4 +136,62 @@ native service/function axis and carry role as pure persona metadata.
 
 ## Verdict
 
-<Empty until graduation.>
+**Graduated 2026-07-22 → design.** Outcome: **NEX is not adopted as a live
+substrate; soulrealm builds a from-scratch, NEX-influenced runtime** whose
+single control plane is the soulstream topic op-log. `agent`/`tool` is kept as
+a role axis, orthogonal to lifecycle. See episode 0002 and design doc
+`hq/02-DESIGN/0001-soulrealm-runtime.md`.
+
+Per bar:
+
+- **Bar 1 (NEX carries the identity model) — PARTIAL, and moot under the
+  chosen direction.** Issuance PASSES: the node mints a fresh uniquely-keyed
+  scoped NATS user per workload (`internal/credentials/signing_key.go`),
+  delivered via required `workload_creds` in an xkey-encrypted env `[measured]`.
+  But the stock scope forbids publishing realm subjects (`WorkloadClaims` →
+  Pub `_INBOX.>` only) and dev-mode issues nothing `[measured]`. The gap is
+  closable through the public `WithMinter(models.CredVendor)` option without
+  touching `internal/` `[measured]` — so *embedding* NEX was viable. We are not
+  taking that path (see Bar 4), but the **design is adopted as influence**: a
+  soulrealm-owned minter, scoping each workload's NATS user to its persona's
+  soulstream subjects, plus the xkey-encrypted-env delivery.
+
+- **Bar 2 (backend orthogonality) — not exercised; carried forward as a design
+  requirement.** Only the native runtime ran. NEX proves the seam is
+  expressible (`WithAgent`/nexlet SDK) `[measured]`; soulrealm's own backend
+  abstraction (native/Docker/Firecracker/K8s) inherits constitution III as a
+  `[D]` design obligation, validated when the first two backends land.
+
+- **Bar 3 (role orthogonal to lifecycle) — PASS `[measured]`.** NEX exposes two
+  native axes, `--type` (runtime) and `--lifecycle` (service | function | job);
+  neither is a role axis. A `tool` legitimately spans lifecycles (persistent
+  MCP server vs on-demand exec), so role is not a lifecycle synonym. `agent`/
+  `tool` is a real, independent axis and is soulrealm's to define.
+
+- **Bar 4 (lowest layer that works) — reframed by the direction call.** The
+  bar assumed we would build *on* NEX and asked for the least-invasive layer.
+  The measured layers were all reachable (embed via public options, no fork
+  needed) `[measured]`. But the decision rejects building on NEX at all, for a
+  reason outside the bar's frame: **two control planes.** NEX runs its own
+  (`$NEX.control.*`, auctions, `$NEX.agent.*`); soulrealm's constitution I puts
+  the topic op-log as the single control plane. Eliminating the second plane —
+  and fitting the runtime to soulrealm's specific needs — is judged
+  `[judgment]` to outweigh the reuse embedding would buy. Naming bonus: not
+  depending on NEX frees the word "agent" from NEX's node-runtime collision, so
+  the role keeps its natural name.
+
+**Decision class:** `[judgment]` built on `[measured]` findings. The measured
+work closed the *feasibility* questions (embedding works, role is orthogonal,
+issuance is free); the fork/embed/rebuild *choice* among viable options is a
+judgment, closed by teach-back (the maintainer restated the single-control-
+plane argument) after the opposing case (embed-on-top) was argued at full
+strength.
+
+**Reversal condition (for the rebuild decision):** revert to embedding NEX
+behind a single-control-plane adapter if, while building the runtime, we find
+ourselves **reimplementing NEX's execution layer wholesale** rather than
+borrowing its shape — concretely, if the isolation-backend + process-
+supervision + artifact-fetch + scoped-minter machinery reaches rough parity
+with NEX's nexlet layer in scope and we are maintaining it ourselves for no
+capability NEX lacked. That reading says the second control plane was the
+cheaper cost, and the trade should flip.
