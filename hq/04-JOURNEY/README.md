@@ -57,10 +57,18 @@ whole gate green. The plan's bet held: **no new soulstream vocabulary** —
 soulrealm is the work.md "runner". Six packages (declaration, minter,
 backend/native, runner, two cmds), pure logic split from I/O so most tests need
 no server; the native backend proves it does not leak soulrealm's secrets into
-a workload. **All five success criteria met** — SC-003 (scope *enforcement*)
-closed with an in-process operator-mode server (`natstest.StartOperator`) that
-denies out-of-scope publishes. **Next:** M1.2 (a `tool` workload the agent
-discovers and calls).
+a workload. All five success criteria met (SC-003 enforcement via an in-process
+operator-mode server).
+
+**M1.2 is done** ([episode 0005](0005-a-tool-answers.md)): soulrealm launches a
+`tool` service and an agent discovers it by name and calls it (uppercase round
+trip). Added the tool role, role-aware scopes, and the runner's launch/stop
+(services don't self-exit). A measured lesson landed a boundary: tool
+request-reply is transient, so it rides soulrealm's own `SOULREALM.SVC.*`
+subjects, not the stored `SOULSTREAM.>` stream (which would ack and race the
+reply). SC-001/002/003 proven end-to-end. **Next:** M1.3 (the same declarations
+under a second isolation backend — Docker/Firecracker — proving constitution
+III's backend-orthogonality).
 
 ## Episode index
 
@@ -70,3 +78,4 @@ discovers and calls).
 | 0002 | [The substrate decision: a from-scratch, NEX-influenced runtime](0002-the-substrate-decision.md) |
 | 0003 | [Soulstream-only scope: the platform waits](0003-soulstream-only-scope.md) |
 | 0004 | [The first agent runs](0004-the-first-agent-runs.md) |
+| 0005 | [A tool answers](0005-a-tool-answers.md) |

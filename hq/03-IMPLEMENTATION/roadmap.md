@@ -36,10 +36,19 @@ criteria, made precise per feature in `specs/NNN-*/`:
   (episode 0003). SC-003 (scope *enforcement*) is now proven against an
   operator-mode server; SC-004/SC-005 at unit level. Whole gate green, all five
   success criteria met.
-- **M1.2 — Launch one tool, called by the agent.** A tool workload the agent
-  discovers and calls over the realm transport, under the same identity model.
-- **M1.3 — Second backend.** The same two workload declarations run unchanged
-  under a second backend (Docker or Firecracker), proving constitution III.
+- **M1.2 — Launch one tool, called by the agent.** ✅ **Done** ([episode
+  0005](../04-JOURNEY/0005-a-tool-answers.md); [`specs/002-call-a-tool/`](../../specs/002-call-a-tool/)).
+  A tool workload the agent discovers by name and calls over request-reply
+  (uppercase round trip), under the same one-identity model. Added the `tool`
+  role, role-aware scopes, and the runner's launch/stop (services don't
+  self-exit). Measured lesson: tool RPC is transient, so it rides soulrealm's
+  own `SOULREALM.SVC.*` (the `SOULSTREAM.>` stream would otherwise ack and race
+  it). SC-001/002/003 proven end-to-end; gate green.
+- **M1.3 — Second backend.** ⬜ Next. The same agent + tool declarations run
+  unchanged under a second backend (Docker or Firecracker), proving constitution
+  III. The `Backend` interface + declaration are already backend-agnostic (M1.1
+  SC-005); this milestone adds the second implementation and proves the
+  declaration is untouched.
 
 ## Later horizons (named, not planned)
 
