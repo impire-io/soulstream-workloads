@@ -68,9 +68,7 @@ func Parse(data []byte) (Declaration, error) {
 // mutates the declaration.
 func (d Declaration) Validate() error {
 	switch d.Role {
-	case RoleAgent:
-	case RoleTool:
-		return fmt.Errorf("role %q not supported yet (M1.1 accepts %q)", d.Role, RoleAgent)
+	case RoleAgent, RoleTool:
 	default:
 		return fmt.Errorf("role %q is not a known role", d.Role)
 	}

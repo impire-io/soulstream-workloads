@@ -38,6 +38,17 @@ func TestParseValid(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsTool(t *testing.T) {
+	d, err := Parse([]byte(validJSON()))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	d.Role = RoleTool
+	if err := d.Validate(); err != nil {
+		t.Fatalf("tool/service should validate: %v", err)
+	}
+}
+
 // SC-005 / FR-001: a backend-specific key must be rejected at parse time.
 func TestParseRejectsBackendField(t *testing.T) {
 	withBackend := `{
@@ -76,7 +87,6 @@ func TestValidateSubsetAndFields(t *testing.T) {
 		mutate func(*Declaration)
 		errHas string
 	}{
-		{"tool role deferred", func(d *Declaration) { d.Role = RoleTool }, "not supported yet"},
 		{"unknown role", func(d *Declaration) { d.Role = "wizard" }, "not a known role"},
 		{"function deferred", func(d *Declaration) { d.Lifecycle = LifecycleFunction }, "not supported yet"},
 		{"job deferred", func(d *Declaration) { d.Lifecycle = LifecycleJob }, "not supported yet"},

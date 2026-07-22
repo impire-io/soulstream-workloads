@@ -21,7 +21,7 @@ type TopicClient interface {
 	AbandonWork(ctx context.Context, itemID string) (string, error)
 }
 
-// Runner launches one workload and records its life as work ops. It holds no
+// Runner launches workloads and records their life as work ops. It holds no
 // connection itself; the caller injects the topic client for the runner
 // persona, keeping the runner testable and the connection lifecycle external.
 type Runner struct {
@@ -32,38 +32,42 @@ type Runner struct {
 	ScratchRoot string
 }
 
-// Run executes one declaration to completion:
-//
-//	preflight (validate, resolve artifact, mint) → work.open → backend.Start
-//	→ work.claim → wait → work.done | work.abandon
-//
-// Preflight failures publish nothing (FR-008: no silent partial start); a
-// start failure yields work.open + work.abandon(start-failed) with no dangling
-// claim; the terminal op is exactly one of done/abandon.
-func (r *Runner) Run(ctx context.Context, tc TopicClient, d declaration.Declaration) error {
-	// Preflight — nothing is published until these pass.
+// Running is a launched workload the caller observes and ends. How it ends
+// depends on the workload: a self-exiting agent/job is awaited (Wait); a
+// persistent service is stopped (Stop). Serve handles either for the CLI.
+type Running struct {
+	handle backend.Handle
+	tc     TopicClient
+	itemID string
+	base   context.Context // publishes terminal ops even if the launch ctx is cancelled
+}
+
+// Launch validates, opens + claims the execution work item, mints the
+// workload's scoped credential, and starts it. Preflight failures publish
+// nothing (FR-008); a start failure yields work.open + work.abandon(start-failed)
+// with no dangling claim. On success it returns a Running handle whose end the
+// caller decides.
+func (r *Runner) Launch(ctx context.Context, tc TopicClient, d declaration.Declaration) (*Running, error) {
 	if err := d.Validate(); err != nil {
-		return fmt.Errorf("runner: invalid declaration: %w", err)
+		return nil, fmt.Errorf("runner: invalid declaration: %w", err)
 	}
 	artifactPath, err := d.ArtifactPath()
 	if err != nil {
-		return fmt.Errorf("runner: %w", err)
+		return nil, fmt.Errorf("runner: %w", err)
 	}
-	cred, err := r.Minter.Mint(minter.Scope{Persona: d.Persona, Topic: d.Topic}, r.CredTTL)
+	cred, err := r.Minter.Mint(minter.Scope{Role: d.Role, Persona: d.Persona, Topic: d.Topic}, r.CredTTL)
 	if err != nil {
-		return fmt.Errorf("runner: mint credential for %q: %w", d.Persona, err)
+		return nil, fmt.Errorf("runner: mint credential for %q: %w", d.Persona, err)
 	}
 
-	// requested
 	title := fmt.Sprintf("run %s as %s", d.Artifact, d.Persona)
 	body := fmt.Sprintf("role=%s lifecycle=%s persona=%s topic=%s artifact=%s",
 		d.Role, d.Lifecycle, d.Persona, d.Topic, d.Artifact)
 	itemID, err := tc.OpenWork(ctx, title, body)
 	if err != nil {
-		return fmt.Errorf("runner: open work: %w", err)
+		return nil, fmt.Errorf("runner: open work: %w", err)
 	}
 
-	// launch
 	spec := backend.LaunchSpec{
 		Artifact:   artifactPath,
 		Args:       d.Args,
@@ -76,28 +80,72 @@ func (r *Runner) Run(ctx context.Context, tc TopicClient, d declaration.Declarat
 	if startErr != nil {
 		_, reason := Outcome(startErr, backend.ExitStatus{})
 		if _, aerr := tc.AbandonWork(ctx, itemID); aerr != nil {
-			return fmt.Errorf("runner: start failed (%v) and abandon failed: %w", startErr, aerr)
+			return nil, fmt.Errorf("runner: start failed (%v) and abandon failed: %w", startErr, aerr)
 		}
-		return fmt.Errorf("runner: start workload (%s): %w", reason, startErr)
+		return nil, fmt.Errorf("runner: start workload (%s): %w", reason, startErr)
 	}
 
-	// started
 	if _, err := tc.ClaimWork(ctx, itemID); err != nil {
-		return fmt.Errorf("runner: claim work: %w", err)
+		return nil, fmt.Errorf("runner: claim work: %w", err)
 	}
 
-	// exited → terminal op
-	st := h.Wait()
-	term, _ := Outcome(nil, st)
+	return &Running{handle: h, tc: tc, itemID: itemID, base: context.WithoutCancel(ctx)}, nil
+}
+
+// Wait blocks until the workload exits on its own and publishes the terminal op
+// (work.done for a clean exit, work.abandon otherwise). For self-exiting agents
+// and jobs.
+func (rw *Running) Wait() error {
+	term, _ := Outcome(nil, rw.handle.Wait())
+	return rw.terminal(term)
+}
+
+// Stop asks the workload to terminate, reaps it, and records work.done —
+// stopping a service is an intentional, successful end. For persistent services.
+func (rw *Running) Stop(ctx context.Context) error {
+	if err := rw.handle.Stop(ctx); err != nil {
+		return fmt.Errorf("runner: stop workload: %w", err)
+	}
+	rw.handle.Wait()
+	return rw.terminal(TerminalDone)
+}
+
+// Serve blocks until the workload exits on its own (→ terminal op) or ctx is
+// cancelled (→ Stop → work.done). The CLI helper for a persistent workload.
+func (rw *Running) Serve(ctx context.Context) error {
+	exited := make(chan backend.ExitStatus, 1)
+	go func() { exited <- rw.handle.Wait() }()
+	select {
+	case st := <-exited:
+		term, _ := Outcome(nil, st)
+		return rw.terminal(term)
+	case <-ctx.Done():
+		_ = rw.handle.Stop(context.Background())
+		<-exited
+		return rw.terminal(TerminalDone)
+	}
+}
+
+func (rw *Running) terminal(term Terminal) error {
 	switch term {
 	case TerminalDone:
-		if _, err := tc.CompleteWork(ctx, itemID); err != nil {
+		if _, err := rw.tc.CompleteWork(rw.base, rw.itemID); err != nil {
 			return fmt.Errorf("runner: complete work: %w", err)
 		}
 	case TerminalAbandon:
-		if _, err := tc.AbandonWork(ctx, itemID); err != nil {
+		if _, err := rw.tc.AbandonWork(rw.base, rw.itemID); err != nil {
 			return fmt.Errorf("runner: abandon work: %w", err)
 		}
 	}
 	return nil
+}
+
+// Run launches a workload and awaits its completion — the M1.1 behaviour, for a
+// self-exiting agent or job.
+func (r *Runner) Run(ctx context.Context, tc TopicClient, d declaration.Declaration) error {
+	rw, err := r.Launch(ctx, tc, d)
+	if err != nil {
+		return err
+	}
+	return rw.Wait()
 }

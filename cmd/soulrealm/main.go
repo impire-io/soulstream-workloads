@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/impire-io/soulstream/realm"
@@ -73,7 +75,17 @@ func run(args []string) error {
 		CredTTL:     24 * time.Hour,
 		ScratchRoot: scratchRoot(),
 	}
-	return r.Run(ctx, topic.Open(client, d.Topic), d)
+
+	rw, err := r.Launch(ctx, topic.Open(client, d.Topic), d)
+	if err != nil {
+		return err
+	}
+
+	// Serve until the workload exits on its own (agent/job) or we are signalled
+	// to stop it (a persistent service).
+	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return rw.Serve(sigCtx)
 }
 
 // serversOf returns the realm's NATS server URLs, minted into workload creds so

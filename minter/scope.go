@@ -4,22 +4,34 @@
 //
 // The design borrows NEX's CredVendor shape (a fresh user per workload,
 // delivered as JWT + seed) but replaces NEX's operational scope with a
-// realm-semantic one: the persona may act only on its topic's subjects.
+// realm-semantic one: a persona may act only on its topic's subjects, and a
+// tool only on its service subject.
 package minter
 
-import "github.com/impire-io/soulstream/topic"
+import (
+	"github.com/impire-io/soulstream/topic"
 
-// Realm-subject building blocks (mirroring soulstream's taxonomy).
+	"github.com/impire-io/soulrealm/declaration"
+)
+
+// Realm-subject building blocks. Topic/notify subjects mirror soulstream's
+// taxonomy (they are stored ops on the SOULSTREAM.> stream). Tool request-reply
+// is TRANSIENT — not a stored op — so it lives on soulrealm's own SOULREALM.SVC.*
+// namespace, which the soulstream stream deliberately does not capture (else a
+// JetStream ack would race the tool's reply).
 const (
 	notifyPrefix   = "SOULSTREAM.PERSONA.NOTIFY."
 	notifyWildcard = notifyPrefix + "*"
+	svcPrefix      = "SOULREALM.SVC."
+	svcWildcard    = svcPrefix + ">"
 	inboxWildcard  = "_INBOX.>"
 )
 
-// Scope is the pure description of what a persona may touch on one topic.
+// Scope is the pure description of what a persona may touch, by role.
 type Scope struct {
-	Persona string // the persona the workload runs as
-	Topic   string // the topic path the persona participates in
+	Role    declaration.Role // agent (default) or tool
+	Persona string
+	Topic   string // the topic the workload's lifecycle lives on / an agent participates in
 }
 
 // PermissionSet is the pub/sub allow-lists derived from a Scope.
@@ -31,27 +43,29 @@ type PermissionSet struct {
 // PermissionSet derives the realm-semantic allow-lists for the scope. Pure:
 // same input, same output, no I/O.
 //
-// An agent P participating in topic T may:
-//   - publish its turns/work ops on the topic's OPS subject, mention others on
-//     the notify subjects, and reply on its inbox;
-//   - follow the topic (OPS + INFO), receive on its own notify inbox, and its
-//     reply inbox.
+// An agent participating in topic T may publish its turns/work ops on T, mention
+// others, CALL tools (SOULSTREAM.SVC.>), and reply on its inbox; and follow T,
+// receive on its own notify inbox and reply inbox.
 //
-// Everything else is denied by omission; SC-003 asserts a publish outside this
-// set is refused by the server.
+// A tool may only SERVE its capability: subscribe its own service subject
+// (SOULSTREAM.SVC.<persona>) and reply on inboxes — nothing else.
+//
+// Everything not listed is denied by omission; the operator-mode enforcement
+// test asserts an out-of-scope publish is refused by the server.
 func (s Scope) PermissionSet() PermissionSet {
+	if s.Role == declaration.RoleTool {
+		return PermissionSet{
+			Pub: []string{inboxWildcard},
+			Sub: []string{svcPrefix + s.Persona, inboxWildcard},
+		}
+	}
 	ops := topic.OpsSubject(s.Topic)
 	return PermissionSet{
-		Pub: []string{
-			ops,
-			notifyWildcard,
-			inboxWildcard,
-		},
-		Sub: []string{
-			ops,
-			topic.InfoSubjectWildcard,
-			notifyPrefix + s.Persona,
-			inboxWildcard,
-		},
+		Pub: []string{ops, notifyWildcard, svcWildcard, inboxWildcard},
+		Sub: []string{ops, topic.InfoSubjectWildcard, notifyPrefix + s.Persona, inboxWildcard},
 	}
 }
+
+// ServiceSubject is the request-reply subject a tool serves on, derived from its
+// name — this is how a caller "discovers" a tool by name.
+func ServiceSubject(toolPersona string) string { return svcPrefix + toolPersona }

@@ -5,8 +5,6 @@ package integration
 
 import (
 	"context"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -24,21 +22,11 @@ import (
 	"github.com/impire-io/soulrealm/runner"
 )
 
-func buildAgentEcho(t *testing.T) string {
-	t.Helper()
-	bin := filepath.Join(t.TempDir(), "agent-echo")
-	cmd := exec.Command("go", "build", "-o", bin, "github.com/impire-io/soulrealm/cmd/agent-echo")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("build agent-echo: %v\n%s", err, out)
-	}
-	return bin
-}
-
 // TestLaunchAgentEndToEnd is SC-001 + SC-002: an agent launched by soulrealm
 // posts a turn attributed to its persona, and the runner drives an execution
 // work item to done on the same topic — all on the one control plane.
 func TestLaunchAgentEndToEnd(t *testing.T) {
-	agentPath := buildAgentEcho(t)
+	agentPath := buildCmd(t, "github.com/impire-io/soulrealm/cmd/agent-echo")
 
 	url, shutdown := natstest.StartJetStream(t)
 	defer shutdown()

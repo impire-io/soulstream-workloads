@@ -7,6 +7,8 @@ import (
 	"github.com/impire-io/soulstream/topic"
 	"github.com/nats-io/jwt/v2"
 	"github.com/nats-io/nkeys"
+
+	"github.com/impire-io/soulrealm/declaration"
 )
 
 func TestPermissionSetScope(t *testing.T) {
@@ -14,7 +16,7 @@ func TestPermissionSetScope(t *testing.T) {
 	ps := s.PermissionSet()
 
 	ops := topic.OpsSubject(s.Topic)
-	wantPub := map[string]bool{ops: true, notifyWildcard: true, inboxWildcard: true}
+	wantPub := map[string]bool{ops: true, notifyWildcard: true, svcWildcard: true, inboxWildcard: true}
 	if len(ps.Pub) != len(wantPub) {
 		t.Fatalf("pub allow = %v, want %d entries", ps.Pub, len(wantPub))
 	}
@@ -40,6 +42,29 @@ func TestPermissionSetScope(t *testing.T) {
 	for _, p := range ps.Pub {
 		if p == "SOMETHING.ELSE" || p == ">" {
 			t.Fatalf("scope leaks a broad/unrelated pub permission %q", p)
+		}
+	}
+}
+
+func TestToolScopeServesOnly(t *testing.T) {
+	s := Scope{Role: declaration.RoleTool, Persona: "uppercase", Topic: "t-ab12"}
+	ps := s.PermissionSet()
+
+	// A tool subscribes only its own service subject (+ inbox) and publishes
+	// only replies. It must NOT be able to publish topic ops or call tools.
+	svc := ServiceSubject("uppercase")
+	wantSub := map[string]bool{svc: true, inboxWildcard: true}
+	if len(ps.Sub) != len(wantSub) {
+		t.Fatalf("tool sub = %v, want %v", ps.Sub, wantSub)
+	}
+	for _, p := range ps.Sub {
+		if !wantSub[p] {
+			t.Fatalf("unexpected tool sub %q", p)
+		}
+	}
+	for _, p := range ps.Pub {
+		if p != inboxWildcard {
+			t.Fatalf("tool must only publish replies, got pub %q", p)
 		}
 	}
 }

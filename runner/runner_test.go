@@ -122,11 +122,31 @@ func TestRunMintFailurePublishesNothing(t *testing.T) {
 	}
 }
 
+// A persistent service is launched (open+claim), stays up, and Stop records a
+// clean done — even though the process exits via signal (intentional stop).
+func TestLaunchThenStopCompletes(t *testing.T) {
+	tc := &fakeTopic{}
+	r := newRunner(fakeMinter{}, fakeBackend{status: backend.ExitStatus{Signal: "terminated"}})
+	rw, err := r.Launch(context.Background(), tc, validDecl())
+	if err != nil {
+		t.Fatalf("Launch: %v", err)
+	}
+	if got := strings.Join(tc.calls, ","); got != "open,claim" {
+		t.Fatalf("after launch ops = %q, want open,claim", got)
+	}
+	if err := rw.Stop(context.Background()); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	if got := strings.Join(tc.calls, ","); got != "open,claim,done" {
+		t.Fatalf("after stop ops = %q, want open,claim,done", got)
+	}
+}
+
 func TestRunInvalidDeclarationRefused(t *testing.T) {
 	tc := &fakeTopic{}
 	r := newRunner(fakeMinter{}, fakeBackend{})
 	d := validDecl()
-	d.Role = declaration.RoleTool // deferred in M1.1
+	d.Lifecycle = declaration.LifecycleFunction // still deferred
 	if err := r.Run(context.Background(), tc, d); err == nil {
 		t.Fatal("expected invalid declaration to be refused")
 	}
