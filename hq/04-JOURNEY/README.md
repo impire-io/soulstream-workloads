@@ -49,15 +49,18 @@ soulrealm depends on soulstream and nothing else — no Impire-platform services
 (identity, tenancy, vault) for now. The minter stays a seam for a future
 external authority, but none is designed in.
 
-**The M1.1 plan is drafted** (`specs/001-launch-an-agent/` plan + research +
-data-model + contracts + quickstart). Headline finding: the slice needs **no
-new soulstream vocabulary** — soulrealm is the "runner" persona work.md stage 4
-already anticipates, and lifecycle maps onto the existing
-`work.open/claim/done/abandon` ops. Two peer identities (runner + workload), a
-realm-semantic minter, native-backend `os/exec`, and (refining design 0001 §4)
-direct env cred-injection for local single-node exec (xkey delivery is a
-multi-node concern). **Next:** `/speckit-tasks` → implementation (creates the Go
-module).
+**M1.1 is implemented** ([episode 0004](0004-the-first-agent-runs.md)): the Go
+module `github.com/impire-io/soulrealm` exists, and an agent launched by
+soulrealm posts a turn attributed to its persona while its lifecycle shows up
+as `work.open/claim/done` on the topic — proven end-to-end (SC-001, SC-002),
+whole gate green. The plan's bet held: **no new soulstream vocabulary** —
+soulrealm is the work.md "runner". Six packages (declaration, minter,
+backend/native, runner, two cmds), pure logic split from I/O so most tests need
+no server; the native backend proves it does not leak soulrealm's secrets into
+a workload. **One gap:** SC-003 (the minted credential is *enforced* to its
+scope) needs an operator-mode NATS harness — the scope is built + unit-tested,
+not yet enforced by the open in-process server. **Next:** the operator-mode
+harness to close SC-003, then M1.2 (a `tool` workload).
 
 ## Episode index
 
@@ -66,3 +69,4 @@ module).
 | 0001 | [Genesis: soulrealm gets an HQ](0001-genesis.md) |
 | 0002 | [The substrate decision: a from-scratch, NEX-influenced runtime](0002-the-substrate-decision.md) |
 | 0003 | [Soulstream-only scope: the platform waits](0003-soulstream-only-scope.md) |
+| 0004 | [The first agent runs](0004-the-first-agent-runs.md) |

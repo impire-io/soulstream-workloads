@@ -26,18 +26,18 @@ control plane.
 Runs the spec-kit flow against design 0001 (§9 acceptance criteria). Exit
 criteria, made precise per feature in `specs/NNN-*/`:
 
-- **M1.1 — Launch one agent.** Spec drafted:
-  [`specs/001-launch-an-agent/spec.md`](../../specs/001-launch-an-agent/spec.md).
-  A single long-lived agent persona launched by soulrealm under the decided
-  contract, minted a persona-scoped credential, participating in a soulstream
-  topic (posts a turn attributed to the persona), lifecycle visible as ops
-  (constitution V). Native (process) backend only. Signing story resolved in
-  the spec: soulrealm holds the realm-account key (soulstream-only scope,
-  episode 0003; no Impire-platform dependency). **Plan drafted**
-  ([`plan.md`](../../specs/001-launch-an-agent/plan.md) + research/data-model/
-  contracts/quickstart) — headline: M1.1 needs **no new soulstream vocabulary**,
-  soulrealm is the work.md "runner" using `work.open/claim/done/abandon`. Next:
-  `/speckit-tasks`.
+- **M1.1 — Launch one agent.** ◑ **Implemented** ([episode
+  0004](../04-JOURNEY/0004-the-first-agent-runs.md); spec/plan/tasks in
+  [`specs/001-launch-an-agent/`](../../specs/001-launch-an-agent/)). The Go
+  module exists; an agent launches natively, posts a turn attributed to its
+  persona, and its lifecycle is `work.open/claim/done` on the topic — proven
+  end-to-end (SC-001, SC-002) with the whole gate green. The plan's bet held:
+  **no new soulstream vocabulary** (soulrealm is the work.md "runner"). Signing
+  is soulrealm-held (episode 0003). **One verification gap remains:** SC-003
+  (the minted credential is *enforced* to its scope) needs an operator-mode
+  NATS harness — the scope is constructed + unit-tested but not enforced by the
+  open in-process test server. Closing SC-003 is the next task before M1.1 is
+  fully done.
 - **M1.2 — Launch one tool, called by the agent.** A tool workload the agent
   discovers and calls over the realm transport, under the same identity model.
 - **M1.3 — Second backend.** The same two workload declarations run unchanged
