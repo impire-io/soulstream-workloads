@@ -1,0 +1,1 @@
+../../hq/00-GENESIS/constitution.md

@@ -24,12 +24,16 @@ control plane.
 ## Phase 1 — First workload (design → build) — *unblocked*
 
 Runs the spec-kit flow against design 0001 (§9 acceptance criteria). Exit
-criteria, to be made precise in `/speckit-specify` + `/speckit-plan`:
+criteria, made precise per feature in `specs/NNN-*/`:
 
-- **M1.1 — Launch one agent.** A single long-lived agent persona launched onto
-  a real NEX node under the decided contract, receiving scoped credentials,
-  participating in a soulstream topic (posts a turn), lifecycle visible as ops
-  (constitution V). One isolation backend (native process) only.
+- **M1.1 — Launch one agent.** Spec drafted:
+  [`specs/001-launch-an-agent/spec.md`](../../specs/001-launch-an-agent/spec.md).
+  A single long-lived agent persona launched by soulrealm under the decided
+  contract, minted a persona-scoped credential, participating in a soulstream
+  topic (posts a turn attributed to the persona), lifecycle visible as ops
+  (constitution V). Native (process) backend only. Signing story resolved in
+  the spec: soulrealm-held realm-account key for this slice, impire-tenants
+  delegation as a named seam. Next: `/speckit-plan`.
 - **M1.2 — Launch one tool, called by the agent.** A tool workload the agent
   discovers and calls over the realm transport, under the same identity model.
 - **M1.3 — Second backend.** The same two workload declarations run unchanged
