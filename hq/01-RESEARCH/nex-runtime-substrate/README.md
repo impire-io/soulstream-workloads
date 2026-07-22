@@ -55,6 +55,30 @@ subject) *or* a short-lived function (spun up per call). Collapsing the two
 axes into one would force every tool to a single lifecycle — the suspected
 design error this topic exists to confirm or refute.
 
+## Spike 1 findings (2026-07-22 — see JOURNEY.md for detail)
+
+Live `nex node up` + source read of the exact dev build (`~/Work/nex`).
+All **[measured]**:
+
+- **Role is orthogonal to NEX's axes (Bar 3 leaning PASS).** `nex workload
+  start` exposes `--type` (runtime; pluggable) *and* `--lifecycle` (service |
+  function | **job**) — two native axes, neither of them "role." `agent`/`tool`
+  is soulrealm's to define.
+- **Naming hazard confirmed.** NEX already uses "agent" for its pluggable
+  node runtime (`--agents`, `--allow-agent-registration`, `node list` →
+  "Running Agents"). A soulrealm role named `agent` collides. Rename the role.
+- **Identity issuance: NEX delivers it (Bar 1 mechanism PASS).** The node
+  mints a fresh uniquely-keyed NATS user per workload, signed under a root
+  account, delivered via required `workload_creds` in an xkey-encrypted env.
+  Soulrealm need not build minting.
+- **But authorization scope is NEX-operational, not realm-semantic (Bar 1 as
+  written: FAIL vs stock).** Default `WorkloadClaims` allows Pub `_INBOX.>`
+  only — a stock workload cannot publish soulstream op subjects. And
+  `--dev-mode` issues *no* creds (anonymous/full access); real scoping needs
+  operator mode. The minter is a pluggable interface
+  (SigningKey/Nkey/FullAccess), so the sharpened question is whether soulrealm
+  can supply its own minter/permission policy without forking NEX.
+
 ## Pre-registered bars
 
 - **Bar 1 — NEX carries the identity model.** A spike launches two workloads
@@ -63,6 +87,14 @@ design error this topic exists to confirm or refute.
   or brokering credentials itself. PASS if the substrate delivers per-workload
   scoped identity end-to-end; FAIL if soulrealm must run its own credential
   tier to get per-persona attribution (which would strain constitution II).
+  — *Spike 1 result (partial):* issuance PASSES (node mints per-workload
+  users); but the default scope forbids publishing realm subjects and dev-mode
+  issues nothing, so "publish a soulstream op with no soulrealm-side credential
+  policy" FAILS against stock NEX. **Successor sub-question (spike 2, operator
+  mode):** can soulrealm register a custom minter / permission template as the
+  node's credential strategy without forking NEX? If yes, Bar 1 recovers to
+  PASS via the pluggable-minter seam; if no, per-realm authorization is
+  soulrealm's tier to own (broker or sidecar).
 
 - **Bar 2 — Backend orthogonality is real, not aspirational.** The same
   workload declaration runs unchanged under at least two isolation backends
