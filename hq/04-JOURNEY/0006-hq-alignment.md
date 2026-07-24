@@ -50,6 +50,10 @@ so no template propagation was required. This is a clarification, not a
 direction change, so the working agreement's adversarial pass does not bind; it
 is recorded here per the governance amendment rule.
 
+**Licensed MIT** [judgment]. The repo had no LICENSE; the owner chose MIT (©
+2026 Daan Gerits), matching the sibling projects. A `LICENSE` file was added and
+the README now states it.
+
 Nothing was refuted or reversed — the audit's four gaps were real and are
 closed as found.
 
@@ -63,4 +67,5 @@ journey-log and research-graduate skills; specs
 [001](../../specs/001-launch-an-agent/spec.md) and
 [002](../../specs/002-call-a-tool/spec.md) marked Shipped; vendored spec-kit
 under [`.specify`](../../.specify/README.md); [roadmap](../03-IMPLEMENTATION/roadmap.md)
-refreshed. Commits 73aeee5, 5431fa2, d5d67d0, f30e0ed, and this one.
+refreshed; MIT [`LICENSE`](../../LICENSE) added. Commits 73aeee5, 5431fa2,
+d5d67d0, f30e0ed, and this one, plus a follow-up license commit.

@@ -69,3 +69,7 @@ Phase 1).
 
 Code lives at the repo root as the Go module `github.com/impire-io/soulrealm`;
 each feature's spec-kit artifacts freeze under `specs/NNN-*/` as it lands.
+
+## License
+
+Soulrealm is released under the [MIT License](LICENSE) — © 2026 Daan Gerits.
