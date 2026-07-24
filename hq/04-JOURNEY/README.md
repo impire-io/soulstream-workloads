@@ -14,7 +14,7 @@ are as load-bearing as the shipped code.
 > reversals, and findings that contradicted expectations. This duty is
 > anchored in `../00-GENESIS/how-we-work.md`.
 
-## Where things stand (2026-07-22)
+## Where things stand (2026-07-24)
 
 **The project was founded** ([episode 0001](0001-genesis.md)): soulrealm is the
 runtime companion to soulstream — soulstream records, soulrealm runs. The hq is
@@ -66,9 +66,19 @@ trip). Added the tool role, role-aware scopes, and the runner's launch/stop
 (services don't self-exit). A measured lesson landed a boundary: tool
 request-reply is transient, so it rides soulrealm's own `SOULREALM.SVC.*`
 subjects, not the stored `SOULSTREAM.>` stream (which would ack and race the
-reply). SC-001/002/003 proven end-to-end. **Next:** M1.3 (the same declarations
-under a second isolation backend — Docker/Firecracker — proving constitution
-III's backend-orthogonality).
+reply). SC-001/002/003 proven end-to-end.
+
+**The hq is now aligned with its own contract** ([episode
+0006](0006-hq-alignment.md)): the "hq structural lint" the constitution and
+skills had cited as the enforcement backbone is finally built —
+`internal/hqlint`, a test-only Go package that rides `make test` and the commit
+gate. Along the way: README/CLAUDE status corrected to Phase 1 (M1.1 + M1.2
+done); specs 001/002 marked Shipped with 002's spec-kit short-circuit recorded
+honestly; the full spec-kit flow vendored from pra (which also fixed a
+plan/tasks template that had baked in pra's constitution principles); and
+Article VI clarified (constitution 0.1.1). **Next:** M1.3 (the same
+declarations under a second isolation backend — Docker/Firecracker — proving
+constitution III's backend-orthogonality).
 
 ## Episode index
 
@@ -79,3 +89,4 @@ III's backend-orthogonality).
 | 0003 | [Soulstream-only scope: the platform waits](0003-soulstream-only-scope.md) |
 | 0004 | [The first agent runs](0004-the-first-agent-runs.md) |
 | 0005 | [A tool answers](0005-a-tool-answers.md) |
+| 0006 | [HQ alignment: the lint gets built](0006-hq-alignment.md) |

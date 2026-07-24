@@ -61,7 +61,7 @@ is a named limitation, written down, not a silent hole.
 ### VI. All-Green Quality Gate
 
 Done means the full gate is green with nothing skipped: `make fmt && make test
-&& make lint` (which includes the hq structural lint once it exists). Tests
+&& make lint` (which includes the hq structural lint, `internal/hqlint`). Tests
 that need no NATS server run without one; anything touching NATS uses an
 in-process or fake transport so the suite has no external dependency. Sign
 every commit. Never commit `.claude/settings.local.json`. Hook or gate
@@ -110,5 +110,7 @@ propagation into any spec-kit template that depends on the changed text.
 Spec-kit plans verify compliance through the Constitution Check; reviews call
 out violations rather than accommodate them.
 
-**Version**: 0.1.0 (draft — ratifies when the first design graduates) |
-**Drafted**: 2026-07-22
+**Version**: 0.1.1 (draft — ratifies when the first design graduates) |
+**Drafted**: 2026-07-22 | **Amended**: 2026-07-24 (0.1.1, PATCH — the hq
+structural lint now exists, so Article VI drops the "once it exists" qualifier;
+recorded in [journey 0006](../04-JOURNEY/0006-hq-alignment.md))

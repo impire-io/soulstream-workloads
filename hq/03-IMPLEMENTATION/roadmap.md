@@ -6,12 +6,16 @@ IV).
 
 ## Where we are
 
-**Substrate decided; design open.** The hq is bootstrapped ([episode
-0001](../04-JOURNEY/0001-genesis.md)) and the substrate question is closed
-([episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)): a from-scratch,
-NEX-influenced runtime with the op-log as the single control plane, specified in
-design [`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md).
-No code yet. Phase 0 is closed; Phase 1 is now unblocked.
+**Phase 1 in flight — M1.1 and M1.2 have landed.** The hq is bootstrapped
+([episode 0001](../04-JOURNEY/0001-genesis.md)) and the substrate question is
+closed ([episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)): a
+from-scratch, NEX-influenced runtime with the op-log as the single control
+plane, specified in design
+[`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md). An agent
+runs and a tool answers (episodes 0004/0005); the hq's own structural lint is
+now built and rides the gate ([episode
+0006](../04-JOURNEY/0006-hq-alignment.md)). Phase 0 is closed; M1.3 (a second
+isolation backend) is next.
 
 ## Phase 0 — Substrate (research) — ✅ closed 2026-07-22
 

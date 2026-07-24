@@ -42,7 +42,7 @@ session; reconstruct it from the conversation and `git log`.
    behavioral changes into the `hq/02-DESIGN/` docs they touch.
 
 4. **Gate, commit (never push).** Full quality gate green (`make fmt && make
-   test && make lint`; the hq structural lint rides it once written). Stage
+   test && make lint`; the hq structural lint, `internal/hqlint`, rides it). Stage
    only the touched paths by explicit pathspec (never `git add .`/`-A`); signed
    commit — ideally amend/join the commit of the work the episode describes,
    otherwise `journey(NNNN): <title>` with the standard co-author trailer.

@@ -59,8 +59,8 @@ required; if the outcome is missing, ask — do not infer it.
    lingering terminal-state folder is illegal.
 
 7. **Gate, commit (never push).** Run the full quality gate (`make fmt && make
-   test && make lint`) once the toolchain exists; the hq structural lint rides
-   it once written. Stage only the touched paths by explicit pathspec (never
+   test && make lint`); the hq structural lint, `internal/hqlint`, rides it.
+   Stage only the touched paths by explicit pathspec (never
    `git add .`/`-A`); signed commit: `research(<slug>): graduate --to
    <outcome> — <one-line verdict>`, with the standard co-author trailer.
    Remind the human to push.
