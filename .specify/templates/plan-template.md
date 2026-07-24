@@ -31,18 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **I. NATS-Native First**: Does every capability use built-in NATS/JetStream
-  primitives? Were current server features (atomic batch publish, multi-get, message
-  scheduling, per-message TTLs, `Nats-Expected-Last-Subject-Sequence`) evaluated
-  before proposing custom code? Any non-NATS infrastructure MUST be justified in
-  Complexity Tracking. State the minimum NATS server version if a specific feature is
-  relied upon.
-- **II. Smallest Viable Implementation**: Is this the smallest design that satisfies
-  the spec? Nothing speculative (unused options, abstraction layers, "for later"
-  hooks)? Does every addition survive the core/extensions test?
-- **III. ELI5 Documentation**: Does the plan include `docs/` updates for every new
-  concept, written in plain words with an everyday analogy, shipping in the same
-  change as the behavior?
+[Gates determined based on constitution file]
 
 ## Project Structure
 
