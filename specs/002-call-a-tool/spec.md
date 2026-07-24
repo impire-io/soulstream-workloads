@@ -2,8 +2,15 @@
 
 **Feature Branch**: `002-call-a-tool`
 **Created**: 2026-07-22
-**Status**: Draft
+**Status**: Shipped
 **Input**: Roadmap Phase 1 M1.2, from design [`hq/02-DESIGN/0001-soulrealm-runtime.md`](../../hq/02-DESIGN/0001-soulrealm-runtime.md) §3.
+
+> **Process note (honest record):** the spec-kit flow was short-circuited for
+> M1.2. This feature shipped from `spec.md` + `plan.md` only; `tasks.md` and
+> the supporting artifacts (`research.md`, `data-model.md`, `contracts/`,
+> `quickstart.md`) were never frozen. They are not reconstructed after the
+> fact — the deviation is recorded in [journey
+> 0006](../../hq/04-JOURNEY/0006-hq-alignment.md).
 
 Soulrealm launches a **tool** workload — a persistent capability other workloads
 call over the realm transport — and an **agent** discovers and calls it, under

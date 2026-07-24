@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-launch-an-agent`
 **Created**: 2026-07-22
-**Status**: Draft
+**Status**: Shipped
 **Input**: Roadmap Phase 1 M1.1, from design [`hq/02-DESIGN/0001-soulrealm-runtime.md`](../../hq/02-DESIGN/0001-soulrealm-runtime.md) §9.
 
 Soulrealm launches a single **agent** persona onto one node, minted a
