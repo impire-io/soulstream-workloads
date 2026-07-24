@@ -18,14 +18,26 @@ the record; soulrealm is the room.
 
 ## Status
 
-**Substrate decided (2026-07-22); design open, no code yet.** The project runs
-research-before-design (see [hq/](hq/README.md)). The opening question — what
-runtime substrate — is settled ([journey
+**Phase 1 in progress — M1.1 and M1.2 have landed; M1.3 (a second isolation
+backend) is next.** The opening substrate question is settled ([journey
 0002](hq/04-JOURNEY/0002-the-substrate-decision.md)): after a live
 [NEX](https://github.com/synadia-io/nex) spike and source read, **soulrealm
 builds its own runtime — NEX as influence, not dependency — with the soulstream
 op-log as the single control plane.** The architecture is in design doc
-[`0001-soulrealm-runtime.md`](hq/02-DESIGN/0001-soulrealm-runtime.md).
+[`0001-soulrealm-runtime.md`](hq/02-DESIGN/0001-soulrealm-runtime.md), and the
+Go module `github.com/impire-io/soulrealm` now exists and runs.
+
+What already works:
+
+- **M1.1 — an agent runs** ([journey
+  0004](hq/04-JOURNEY/0004-the-first-agent-runs.md)): soulrealm launches an
+  agent natively with a freshly minted, persona-scoped credential; its posted
+  turn is attributed to that persona while its lifecycle appears as
+  `work.open/claim/done` on the topic — no second control plane.
+- **M1.2 — a tool answers** ([journey
+  0005](hq/04-JOURNEY/0005-a-tool-answers.md)): an agent discovers a launched
+  tool by name and calls it over request-reply (uppercase round trip), under
+  the same one-identity model.
 
 The decided shape:
 
@@ -41,7 +53,9 @@ The decided shape:
 - **Isolation backends** — native process, Docker/OCI, Firecracker, Kubernetes
   — kept orthogonal to the contract, pluggable per node.
 
-Next: the first runtime slice through the spec-kit flow (roadmap Phase 1).
+Next: M1.3 — the same agent and tool declarations run unchanged under a second
+isolation backend (Docker or Firecracker), proving constitution III (roadmap
+Phase 1).
 
 ## Layout
 
@@ -53,6 +67,5 @@ Next: the first runtime slice through the spec-kit flow (roadmap Phase 1).
 | [`hq/03-IMPLEMENTATION/`](hq/03-IMPLEMENTATION/README.md) | The roadmap: gates, not calendars |
 | [`hq/04-JOURNEY/`](hq/04-JOURNEY/README.md) | Numbered episodes: the honest log |
 
-Code will live at the repo root as a Go module
-(`github.com/impire-io/soulrealm`) once the first design graduates and enters
-the spec-driven flow — not before.
+Code lives at the repo root as the Go module `github.com/impire-io/soulrealm`;
+each feature's spec-kit artifacts freeze under `specs/NNN-*/` as it lands.
