@@ -14,6 +14,8 @@ import (
 	"github.com/impire-io/soulstream/realm"
 	"github.com/impire-io/soulstream/topic"
 
+	"github.com/impire-io/soulrealm/backend"
+	"github.com/impire-io/soulrealm/backend/msb"
 	"github.com/impire-io/soulrealm/backend/native"
 	"github.com/impire-io/soulrealm/declaration"
 	"github.com/impire-io/soulrealm/minter"
@@ -68,9 +70,14 @@ func run(args []string) error {
 		return err
 	}
 
+	be, err := selectBackend(os.Getenv("SOULREALM_BACKEND"), os.Getenv("SOULREALM_MSB_IMAGE"))
+	if err != nil {
+		return err
+	}
+
 	r := &runner.Runner{
 		Minter:      m,
-		Backend:     native.New(),
+		Backend:     be,
 		Realm:       realmName,
 		CredTTL:     24 * time.Hour,
 		ScratchRoot: scratchRoot(),
@@ -86,6 +93,21 @@ func run(args []string) error {
 	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	return rw.Serve(sigCtx)
+}
+
+// selectBackend maps the node-side backend choice (SOULREALM_BACKEND) to an
+// isolation backend — the ONLY place isolation is chosen (constitution III;
+// the declaration cannot name a backend, its parser rejects unknown fields).
+// An unrecognised value fails loud before any op is published (FR-001).
+func selectBackend(name, msbImage string) (backend.Backend, error) {
+	switch name {
+	case "", "native":
+		return native.New(), nil
+	case "msb":
+		return &msb.Backend{Image: msbImage}, nil
+	default:
+		return nil, fmt.Errorf("SOULREALM_BACKEND %q is not a known backend (native, msb)", name)
+	}
 }
 
 // serversOf returns the realm's NATS server URLs, minted into workload creds so
