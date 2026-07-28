@@ -18,8 +18,8 @@ the record; soulrealm is the room.
 
 ## Status
 
-**Phase 1 in progress — M1.1 and M1.2 have landed; M1.3 (a second isolation
-backend) is next.** The opening substrate question is settled ([journey
+**Phase 1 complete — M1.1, M1.2, and M1.3 have landed.** The opening
+substrate question is settled ([journey
 0002](hq/04-JOURNEY/0002-the-substrate-decision.md)): after a live
 [NEX](https://github.com/synadia-io/nex) spike and source read, **soulrealm
 builds its own runtime — NEX as influence, not dependency — with the soulstream
@@ -38,6 +38,13 @@ What already works:
   0005](hq/04-JOURNEY/0005-a-tool-answers.md)): an agent discovers a launched
   tool by name and calls it over request-reply (uppercase round trip), under
   the same one-identity model.
+- **M1.3 — a second wall** ([journey
+  0007](hq/04-JOURNEY/0007-a-second-wall.md)): the byte-identical declarations
+  run inside [microsandbox](https://github.com/superradcompany/microsandbox)
+  microVMs — agent and tool both — proving constitution III with a real
+  isolation boundary (a host path readable natively is denied in-guest).
+  Backend selection is node-side (`SOULREALM_BACKEND=msb`); the declaration
+  cannot even name a backend.
 
 The decided shape:
 
@@ -50,12 +57,12 @@ The decided shape:
 - **Realm-semantic identity.** Each workload gets a freshly minted NATS user
   scoped to its persona's subjects, delivered via an xkey-encrypted env
   (NEX's `CredVendor` design, reimplemented).
-- **Isolation backends** — native process, Docker/OCI, Firecracker, Kubernetes
-  — kept orthogonal to the contract, pluggable per node.
+- **Isolation backends** — native process and microsandbox microVMs today;
+  Docker/OCI, Firecracker, Kubernetes as later options — kept orthogonal to
+  the contract, pluggable per node.
 
-Next: M1.3 — the same agent and tool declarations run unchanged under a second
-isolation backend (Docker or Firecracker), proving constitution III (roadmap
-Phase 1).
+Next: the later horizons get their research gates — Fleet (multi-node),
+sandboxes (soulstream work stage 5), and the tool ecosystem (roadmap).
 
 ## Layout
 

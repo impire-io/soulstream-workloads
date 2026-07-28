@@ -121,9 +121,12 @@ integration package, gated by build tag so the default suite stays hermetic.
    - writes `nats.creds` into the scratch dir (same bytes as native);
    - derives the sandbox name from the scratch dir's work-item id
      (`soulrealm-<id>`);
-   - builds `msb run --no-tty --name <name> -v <scratch>:/scratch
-     -v <artifactDir>:/artifact:ro -w /scratch --net host -e KEY=VAL … <image>
-     -- /artifact/<bin> <args…>`;
+   - builds `msb run --no-tty --quiet --name <name> -v <scratch>:/scratch
+     --copy-file <artifact>:/artifact/<bin> -w /scratch --net host
+     -e KEY=VAL … <image> -- /artifact/<bin> <args…>` (amended from the
+     planned `:ro` artifact mount — research D3's honest record), with both
+     node-side paths symlink-resolved (msb 0.6.7 cannot mount through
+     symlinks — measured);
    - env block = native's contract with `SOULREALM_NATS_CREDS=/scratch/nats.creds`
      and loopback server URLs rewritten to the host alias (research D2);
    - starts the process; failure → same cleanup-and-error shape as native.

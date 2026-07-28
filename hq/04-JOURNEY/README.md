@@ -14,7 +14,7 @@ are as load-bearing as the shipped code.
 > reversals, and findings that contradicted expectations. This duty is
 > anchored in `../00-GENESIS/how-we-work.md`.
 
-## Where things stand (2026-07-24)
+## Where things stand (2026-07-28)
 
 **The project was founded** ([episode 0001](0001-genesis.md)): soulrealm is the
 runtime companion to soulstream — soulstream records, soulrealm runs. The hq is
@@ -76,9 +76,21 @@ gate. Along the way: README/CLAUDE status corrected to Phase 1 (M1.1 + M1.2
 done); specs 001/002 marked Shipped with 002's spec-kit short-circuit recorded
 honestly; the full spec-kit flow vendored from pra (which also fixed a
 plan/tasks template that had baked in pra's constitution principles); and
-Article VI clarified (constitution 0.1.1). **Next:** M1.3 (the same
-declarations under a second isolation backend — Docker/Firecracker — proving
-constitution III's backend-orthogonality).
+Article VI clarified (constitution 0.1.1).
+
+**M1.3 is done — Phase 1 is complete** ([episode 0007](0007-a-second-wall.md)):
+the byte-identical M1.1/M1.2 declarations run inside **microsandbox**
+microVMs (an open amendment: the roadmap had said Docker/Firecracker), with
+the identical op mapping on the topic and a measured isolation boundary — a
+host path readable natively is denied in-guest. The `msb` CLI is supervised
+as a child process (no CGO SDK); loopback NATS is rewritten to the guest's
+host alias under a host-only network policy; backend selection is node-side
+(`SOULREALM_BACKEND`), and the declaration still cannot name a backend. The
+default suite stays hermetic (stub CLI); `make test-msb` boots real microVMs.
+A refuted diagnosis is on record (":ro unsupported" was really msb failing on
+symlinked mount sources), plus a named limitation (remote NATS needs the
+`public` profile — Fleet-era). **Next:** the later horizons get research
+gates — Fleet, sandboxes (stage 5), tool ecosystem.
 
 ## Episode index
 
@@ -90,3 +102,4 @@ constitution III's backend-orthogonality).
 | 0004 | [The first agent runs](0004-the-first-agent-runs.md) |
 | 0005 | [A tool answers](0005-a-tool-answers.md) |
 | 0006 | [HQ alignment: the lint gets built](0006-hq-alignment.md) |
+| 0007 | [A second wall: the microsandbox backend](0007-a-second-wall.md) |

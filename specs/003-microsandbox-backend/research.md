@@ -64,24 +64,36 @@ the host; multi-node arrives with Fleet.
 
 ## D3 — Credential, artifact, and scratch injection
 
-**Decision**: Reuse the native backend's delivery shape through two bind
-mounts: the workload's scratch dir (host) mounted read-write at `/scratch`
-(also the guest workdir, `-w /scratch`), with `nats.creds` written into it
-before boot exactly as native does; the artifact's directory mounted
-read-only, the artifact exec'd from there. Env vars are passed with `-e`:
-same `SOULREALM_*` contract as native, with `SOULREALM_NATS_CREDS` pointing
-at the in-guest path (`/scratch/nats.creds`) and `SOULREALM_NATS_SERVERS`
-rewritten per D2.
+**Decision**: Reuse the native backend's delivery shape: the workload's
+scratch dir (host) bind-mounted read-write at `/scratch` (also the guest
+workdir, `-w /scratch`), with `nats.creds` written into it before boot
+exactly as native does; the artifact copied into the guest rootfs pre-boot
+(`--copy-file <host>:/artifact/<bin>`) and exec'd from there. Env vars are
+passed with `-e`: same `SOULREALM_*` contract as native, with
+`SOULREALM_NATS_CREDS` pointing at the in-guest path
+(`/scratch/nats.creds`) and `SOULREALM_NATS_SERVERS` rewritten per D2.
 
 **Rationale**: the workload-facing contract (env names, creds file, cwd =
 scratch) stays byte-for-byte the one M1.1/M1.2 workloads already speak — the
-reference workloads run unmodified. Mounting the artifact read-only is a
-strictly better posture than native (a workload cannot rewrite its own
-binary). Exec-bit preservation on macOS virtiofs was **[measured]** (the
-historical dropped-exec-bit issue #1177 is fixed).
+reference workloads run unmodified. The pre-boot copy is a strictly better
+posture than any mount for the artifact: the host copy is never exposed to
+the VM at all (guest writes land in its own throwaway COW layer). Exec-bit
+preservation through `--copy-file` was **[measured]**.
 
-**Alternatives considered**: copying the artifact into scratch (loses the
-read-only property); guest-agent file writes (SDK-only surface).
+**Amended during implementation (honest record)**: the plan first said
+"artifact directory mounted read-only". The initial `:ro` probe failed — but
+the failure was misdiagnosed: **msb 0.6.7 cannot mount any source whose path
+traverses a symlink** ("Not a directory", os error 20 — and macOS tempdirs
+live behind `/var → /private/var`). On resolved paths `:ro` works correctly
+**[measured]**. The backend therefore resolves symlinks
+(`filepath.EvalSymlinks`) on the scratch dir and artifact before invoking
+msb, and `--copy-file` was kept for the artifact on its own merits (no host
+exposure), not because `:ro` is unavailable.
+
+**Alternatives considered**: read-only artifact-dir mount (works on resolved
+paths; exposes the host directory to the guest); copying the artifact into
+scratch (mixes it into the workload-writable area); guest-agent file writes
+(SDK-only surface).
 
 ## D4 — Sandbox naming, lifecycle mapping, and reaping
 
@@ -150,3 +162,7 @@ every CI/Linux-x86 contributor).
 - Known upstream issue to watch: #1180 (proxied guest TCP CLOSE_WAIT leak,
   256-slot table). Irrelevant at our connection volume (one long-lived NATS
   connection per workload) but recorded.
+- Upstream bug found during implementation **[measured]**: mounts fail with
+  "Not a directory" when the host source path traverses a symlink (e.g.
+  anything under macOS `/var/folders/...`). Worked around in the backend by
+  resolving symlinks before handover; candidate upstream report.

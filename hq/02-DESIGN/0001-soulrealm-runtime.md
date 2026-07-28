@@ -102,8 +102,10 @@ soulrealm's own:
   node vs central) is an open sub-question, scoped to soulstream + soulrealm:
   soulrealm holds a realm-account signing key (dev: provisioned with `nsc`).
   The minter is a seam, so an external signing authority could take over later
-  without changing the workload contract — but no such external dependency is
-  designed in now (see §1 dependency scope).
+  without changing the workload contract — the anticipated candidate is
+  **soulidentity** (the sibling identity project), which would slot in behind
+  the `minter.Minter` interface — but no such external dependency is designed
+  in now (see §1 dependency scope).
 
 ## 5. Lifecycle as ops (the single control plane)
 
@@ -132,9 +134,16 @@ reason to add a second plane.
 The contract in §3 says nothing about *how* a workload is isolated. A node
 selects a backend; the declaration is unchanged across them (constitution III).
 
-- **native process** `[D]` — first backend; the reference the others are
-  validated against.
-- **Docker/OCI** `[D]`, **Firecracker microVM** `[O]`, **Kubernetes pod** `[O]`
+- **native process** `[D]` — first backend (landed M1.1); the reference the
+  others are validated against.
+- **microsandbox microVM** `[D]` — second backend, landed M1.3 (amended
+  2026-07-28: chosen over the Docker/Firecracker named at design time — a
+  guest kernel *and* it runs on the macOS dev machine; journey 0007). The
+  `msb` CLI is supervised as a child process; the workload sees the identical
+  env contract, with loopback NATS rewritten to the guest's host alias under
+  a host-only network policy. Seam contract frozen in
+  [`specs/003-microsandbox-backend/contracts/backend-seam.md`](../../specs/003-microsandbox-backend/contracts/backend-seam.md).
+- **Docker/OCI** `[O]`, **Firecracker microVM** `[O]`, **Kubernetes pod** `[O]`
   — each a backend plugin behind one interface: fetch the artefact, inject the
   xkey-encrypted creds/env, start, stream lifecycle as ops, stop, reap.
 - The backend interface is soulrealm's, shaped by NEX's nexlet/agent SDK
@@ -165,8 +174,8 @@ Named so their absence is deliberate; each has a seam.
 
 - **Multi-node placement / scheduling** `[O]` — first build is single-node; the
   claim-in-ops seam (§5) is where it grows.
-- **Firecracker / Kubernetes backends** `[O]` — native + Docker first; §6 is the
-  seam.
+- **Docker / Firecracker / Kubernetes backends** `[O]` — native + microsandbox
+  first (amended 2026-07-28); §6 is the seam.
 - **Sandboxes** (soulstream work stage 5) — gated on stage-4 execution being
   real first; a later design doc.
 - **Tool discovery/marketplace** — the `tool` role runs; rich discovery is
@@ -183,8 +192,10 @@ against an operator-mode NATS realm:
 2. Its lifecycle (started / progress / exited) appears as **ops on the topic**,
    readable by any persona (constitution V), with no second control plane.
 3. The workload's declaration contains **no backend-specific field**
-   (constitution III), proven by the Docker backend running the same
-   declaration unchanged in a follow-on slice.
+   (constitution III), proven by a second backend running the same
+   declaration unchanged in a follow-on slice. *(Amended 2026-07-28: landed
+   as the microsandbox backend, byte-identical declarations asserted in-test
+   — journey 0007. The design-time text said "the Docker backend".)*
 
 These map to roadmap Phase 1 (M1.1–M1.3); the exact op subjects, the
 declaration schema, and the minter's signing story (§4 `[O]`) are the first

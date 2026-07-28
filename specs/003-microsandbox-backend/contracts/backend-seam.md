@@ -42,8 +42,10 @@ type Handle interface {
 
 ## msb-specific mapping (informative)
 
-- child process = `msb run --no-tty --name soulrealm-<id> …` (exit code of
-  the guest command propagates — measured, research D1/D4);
+- child process = `msb run --no-tty --quiet --name soulrealm-<id> …` (exit
+  code of the guest command propagates — measured, research D1/D4); the
+  artifact enters the guest by pre-boot copy (`--copy-file`), never by
+  exposing the host path; mount/copy sources are symlink-resolved (D3);
 - Stop = SIGTERM to the msb process (stops the VM — measured), SIGKILL after
   grace; Wait additionally runs `msb rm --force soulrealm-<id>`;
 - network: deny-by-default with only the `host` destination group granted;

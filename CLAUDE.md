@@ -15,18 +15,20 @@ Soulstream is the record; soulrealm is the room.
 
 ## Status
 
-**Phase 1 in progress — M1.1 and M1.2 have landed; M1.3 (a second isolation
-backend) is next.** The runtime is a from-scratch, **NEX-influenced** build
-with the soulstream op-log as the *single control plane* — decided in [journey
+**Phase 1 complete — M1.1, M1.2, and M1.3 have landed.** The runtime is a
+from-scratch, **NEX-influenced** build with the soulstream op-log as the
+*single control plane* — decided in [journey
 0002](hq/04-JOURNEY/0002-the-substrate-decision.md), specified in design
 [`0001-soulrealm-runtime.md`](hq/02-DESIGN/0001-soulrealm-runtime.md). NEX is
 influence, not a dependency. The Go module exists and runs: an agent launches
-natively and posts a turn attributed to its persona ([journey
-0004](hq/04-JOURNEY/0004-the-first-agent-runs.md)), and a tool answers an
-agent's request-reply call ([journey
-0005](hq/04-JOURNEY/0005-a-tool-answers.md)) — lifecycle visible as ops, no
-second control plane. Next is M1.3: the same declarations under a second
-isolation backend (roadmap).
+and posts a turn attributed to its persona ([journey
+0004](hq/04-JOURNEY/0004-the-first-agent-runs.md)), a tool answers an agent's
+request-reply call ([journey 0005](hq/04-JOURNEY/0005-a-tool-answers.md)),
+and the same declarations run unchanged inside microsandbox microVMs —
+backend chosen node-side, constitution III proven ([journey
+0007](hq/04-JOURNEY/0007-a-second-wall.md)). The real-microVM proof is
+`make test-msb` (needs `msb` installed); the default gate stays hermetic.
+Next horizon: gated research for Fleet / sandboxes / tool ecosystem (roadmap).
 
 ## The rules that bind every change
 

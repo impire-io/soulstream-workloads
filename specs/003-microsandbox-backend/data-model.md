@@ -39,7 +39,7 @@ How the backend maps the seam's `backend.LaunchSpec` onto a sandbox:
 
 | LaunchSpec field | Native | msb |
 |---|---|---|
-| `Artifact` | exec'd directly | parent dir bind-mounted read-only at `/artifact`; exec `/artifact/<base>` |
+| `Artifact` | exec'd directly | copied into the guest rootfs pre-boot (`--copy-file`); exec `/artifact/<base>` — the host copy is never exposed to the VM |
 | `Args` | argv | argv after the image separator |
 | `Cred` | creds file in scratch + env | same creds file; in-guest path `/scratch/nats.creds`; server URLs loopback→`HostAlias` |
 | `Realm`/`Topic` | env | same env, unchanged |

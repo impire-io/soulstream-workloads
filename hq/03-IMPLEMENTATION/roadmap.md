@@ -6,16 +6,18 @@ IV).
 
 ## Where we are
 
-**Phase 1 in flight — M1.1 and M1.2 have landed.** The hq is bootstrapped
-([episode 0001](../04-JOURNEY/0001-genesis.md)) and the substrate question is
-closed ([episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)): a
-from-scratch, NEX-influenced runtime with the op-log as the single control
-plane, specified in design
-[`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md). An agent
-runs and a tool answers (episodes 0004/0005); the hq's own structural lint is
-now built and rides the gate ([episode
-0006](../04-JOURNEY/0006-hq-alignment.md)). Phase 0 is closed; M1.3 (a second
-isolation backend) is next.
+**Phase 1 complete — M1.1, M1.2, and M1.3 have all landed.** The hq is
+bootstrapped ([episode 0001](../04-JOURNEY/0001-genesis.md)) and the substrate
+question is closed ([episode
+0002](../04-JOURNEY/0002-the-substrate-decision.md)): a from-scratch,
+NEX-influenced runtime with the op-log as the single control plane, specified
+in design [`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md).
+An agent runs and a tool answers (episodes 0004/0005); the hq's own structural
+lint rides the gate ([episode 0006](../04-JOURNEY/0006-hq-alignment.md)); and
+the same declarations now run unchanged inside microsandbox microVMs —
+constitution III proven by a second backend ([episode
+0007](../04-JOURNEY/0007-a-second-wall.md)). Next horizon: to be gated
+(Fleet, sandboxes-stage-5, or the tool ecosystem — see below).
 
 ## Phase 0 — Substrate (research) — ✅ closed 2026-07-22
 
@@ -48,11 +50,23 @@ criteria, made precise per feature in `specs/NNN-*/`:
   self-exit). Measured lesson: tool RPC is transient, so it rides soulrealm's
   own `SOULREALM.SVC.*` (the `SOULSTREAM.>` stream would otherwise ack and race
   it). SC-001/002/003 proven end-to-end; gate green.
-- **M1.3 — Second backend.** ⬜ Next. The same agent + tool declarations run
-  unchanged under a second backend (Docker or Firecracker), proving constitution
-  III. The `Backend` interface + declaration are already backend-agnostic (M1.1
-  SC-005); this milestone adds the second implementation and proves the
-  declaration is untouched.
+- **M1.3 — Second backend.** ✅ **Done** ([episode
+  0007](../04-JOURNEY/0007-a-second-wall.md);
+  [`specs/003-microsandbox-backend/`](../../specs/003-microsandbox-backend/)).
+  **Open amendment:** the backend landed as **microsandbox** (microVM via
+  libkrun), not the "Docker or Firecracker" written here at planning time —
+  microVM-grade isolation that also runs on the macOS dev machine (Firecracker
+  cannot; Docker-on-mac is one shared daemon VM). Measured: the byte-identical
+  M1.1/M1.2 declarations (asserted in-test) ran sandboxed — agent turn +
+  `open/claim/done`, tool discovery + round trip, crash → `abandon`, an
+  isolation probe readable natively but denied in-guest, zero sandboxes left
+  after every end-of-life. The seam held: runner, minter, declaration all
+  untouched; the `msb` CLI is supervised as a child process (no CGO SDK);
+  loopback NATS is rewritten to the guest's host alias under a host-only
+  network policy. Gate: `make check && make test-msb` green. Named
+  limitation: a non-loopback NATS server needs the `public` net profile
+  (Fleet-era). Upstream bug found and worked around: msb 0.6.7 cannot mount
+  symlink-traversing sources.
 
 ## Later horizons (named, not planned)
 

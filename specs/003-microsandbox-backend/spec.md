@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-microsandbox-backend`
 **Created**: 2026-07-28
-**Status**: Draft
+**Status**: Shipped
 **Input**: Roadmap Phase 1 M1.3, from design
 [`hq/02-DESIGN/0001-soulrealm-runtime.md`](../../hq/02-DESIGN/0001-soulrealm-runtime.md)
 §6/§9. Backend chosen by the operator: **microsandbox** (microVM isolation).

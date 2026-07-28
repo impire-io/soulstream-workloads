@@ -17,10 +17,10 @@ phase per research D6.
 
 **Purpose**: Everything both backends' proof needs on this node.
 
-- [ ] T001 Verify msb 0.6.7 present and healthy on the node (`msb doctor`
+- [x] T001 Verify msb 0.6.7 present and healthy on the node (`msb doctor`
       green; alpine image pulled so e2e boots are warm) — no repo change,
       recorded in research.md's measured-environment section
-- [ ] T002 Add `buildCmdLinux` helper (GOOS=linux, host GOARCH,
+- [x] T002 Add `buildCmdLinux` helper (GOOS=linux, host GOARCH,
       CGO_ENABLED=0 build of a cmd/ artifact) to
       `integration/helpers_test.go`
 
@@ -31,7 +31,7 @@ phase per research D6.
 **Purpose**: The backend package skeleton and its test seam — every story
 builds on it.
 
-- [ ] T003 Create `backend/msb/msb.go`: `Backend{Image, MsbPath, HostAlias}`
+- [x] T003 Create `backend/msb/msb.go`: `Backend{Image, MsbPath, HostAlias}`
       with defaults (`alpine`, `msb`, `host.microsandbox.internal`), `New()`,
       and the `Start` skeleton: scratch-dir + creds-file creation identical
       to native (shared shape, not shared code — native stays untouched),
@@ -39,10 +39,10 @@ builds on it.
       construction per contracts/backend-seam.md (`--no-tty`, `--name`,
       `-v scratch:/scratch`, `-v artifactDir:/artifact:ro`, `-w /scratch`,
       `--net host`, `-e` env block, image, `-- /artifact/<bin> args…`)
-- [ ] T004 [P] Implement loopback→HostAlias NATS URL rewrite in
+- [x] T004 [P] Implement loopback→HostAlias NATS URL rewrite in
       `backend/msb/msb.go` (`rewriteServers`: 127.0.0.1/::1/localhost hosts
       only, others pass through — data-model.md validation rules)
-- [ ] T005 [P] Create stub-msb test harness in `backend/msb/msb_test.go`: a
+- [x] T005 [P] Create stub-msb test harness in `backend/msb/msb_test.go`: a
       helper that writes a fake `msb` shell script into t.TempDir() which
       records argv to a file and exits with a scripted code/delay — the
       hermetic seam from research D6
@@ -61,28 +61,28 @@ the isolation boundary is real (SC-003).
 **Independent Test**: `make test-msb` runs `TestMsbLaunchAgentEndToEnd` +
 `TestMsbIsolationBoundary` green; unit tests prove argv/env/rewrite hermetically.
 
-- [ ] T006 [US1] Complete `handle` in `backend/msb/msb.go`: `Wait` (process
+- [x] T006 [US1] Complete `handle` in `backend/msb/msb.go`: `Wait` (process
       wait → guest exit status via existing statusOf-style mapping, then
       `msb rm --force <name>` + scratch removal, sync.Once-idempotent),
       `Stop` (SIGTERM, 5 s grace, SIGKILL) — behavioral contract items 3/4/6
-- [ ] T007 [P] [US1] Unit tests in `backend/msb/msb_test.go` against the stub:
+- [x] T007 [P] [US1] Unit tests in `backend/msb/msb_test.go` against the stub:
       argv shape (mounts ro/rw, workdir, net profile, image, artifact path,
       name), env block exactly the workload-env contract with rewritten
       servers + in-guest creds path and nothing inherited from the parent
       env, creds file written 0600 into scratch, exit-code passthrough,
       Stop→SIGTERM escalation, start-failure leaves no scratch, Wait reaps
       scratch + invokes `msb rm`
-- [ ] T008 [US1] E2E `TestMsbLaunchAgentEndToEnd` in
+- [x] T008 [US1] E2E `TestMsbLaunchAgentEndToEnd` in
       `integration/msb_e2e_test.go` (build tag `msb_e2e`): the launch_test.go
       scenario verbatim but `Backend: msb.New()` and
       `buildCmdLinux(agent-echo)` — asserts persona turn + work.done (SC-001,
       acceptance 1); NATS listens on 127.0.0.1 so the rewrite is exercised
       for real
-- [ ] T009 [P] [US1] E2E `TestMsbIsolationBoundary` in
+- [x] T009 [P] [US1] E2E `TestMsbIsolationBoundary` in
       `integration/msb_e2e_test.go`: probe workload (inline-built) reads a
       host-side file outside its scratch — native backend run succeeds the
       read, msb run fails it (SC-003, acceptance 3)
-- [ ] T010 [US1] Add `test-msb` target to `Makefile`
+- [x] T010 [US1] Add `test-msb` target to `Makefile`
       (`go test -tags msb_e2e -count=1 ./integration/ -run 'TestMsb'`) and
       wire the build tag header into msb_e2e_test.go
 
@@ -98,7 +98,7 @@ by name, `"hi"`→`"HI"`, stop → `work.done` + full reaping (SC-002).
 
 **Independent Test**: `TestMsbAgentCallsToolEndToEnd` green under `make test-msb`.
 
-- [ ] T011 [US2] E2E `TestMsbAgentCallsToolEndToEnd` in
+- [x] T011 [US2] E2E `TestMsbAgentCallsToolEndToEnd` in
       `integration/msb_e2e_test.go`: tool_test.go scenario with the msb
       backend and `buildCmdLinux(tool-upper)`; discovery retry window ≥ 15 s
       (research: cold-boot margin); after `Stop`: assert `work.done`, scratch
@@ -117,11 +117,11 @@ works; nothing outlives any end-of-life (SC-004).
 **Independent Test**: `TestMsbCrashAbandons` green under `make test-msb`;
 escalation covered hermetically by the stub.
 
-- [ ] T012 [US3] E2E `TestMsbCrashAbandons` in
+- [x] T012 [US3] E2E `TestMsbCrashAbandons` in
       `integration/msb_e2e_test.go`: workload exiting nonzero inside the
       sandbox → runner records `work.abandon`; afterwards zero `soulrealm-*`
       sandboxes, scratch removed (SC-004, US3 acceptance 1)
-- [ ] T013 [P] [US3] Stub-based unit test for stop-escalation in
+- [x] T013 [P] [US3] Stub-based unit test for stop-escalation in
       `backend/msb/msb_test.go`: fake msb that ignores SIGTERM → Stop
       escalates to SIGKILL within grace; Wait still reaps (US3 acceptance 2)
 
@@ -133,23 +133,23 @@ escalation covered hermetically by the stub.
 
 **Purpose**: Node-side selection, the zero-diff proof, docs, and the gate.
 
-- [ ] T014 Wire backend selection into `cmd/soulrealm/main.go`:
+- [x] T014 Wire backend selection into `cmd/soulrealm/main.go`:
       `SOULREALM_BACKEND` = `native` (default) | `msb` (+
       `SOULREALM_MSB_IMAGE` override); unknown value errors before any op
       (FR-001); factor a small `selectBackend` func with a unit test if main
       stays untestable
-- [ ] T015 [P] Zero-diff assertion (SC-001/002 clause): in
+- [x] T015 [P] Zero-diff assertion (SC-001/002 clause): in
       `integration/msb_e2e_test.go`, both e2e declarations constructed from
       one shared literal used verbatim for a native control-run in the same
       test file — the "diff is empty" proof is structural (same value), noted
       in a comment referencing spec acceptance US1-2
-- [ ] T016 [P] Update `specs/003-microsandbox-backend/quickstart.md` if any
+- [x] T016 [P] Update `specs/003-microsandbox-backend/quickstart.md` if any
       command/flag drifted during implementation; confirm each quickstart
       command works as written
-- [ ] T017 Full gate: `make check` (hermetic — verify it passes with
+- [x] T017 Full gate: `make check` (hermetic — verify it passes with
       `PATH` lacking msb to prove no hidden dependency) and `make test-msb`
       (real microVMs) — both green, nothing skipped (SC-005)
-- [ ] T018 Land per roadmap discipline, same merge: roadmap.md M1.3 closed
+- [x] T018 Land per roadmap discipline, same merge: roadmap.md M1.3 closed
       with measured outcome + the open amendment (microsandbox, not
       Docker/Firecracker); design 0001 §6 backend list + §9 acceptance-3
       wording amended; CLAUDE.md + README status lines; spec.md Status →
