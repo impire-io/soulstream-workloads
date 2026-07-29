@@ -46,10 +46,15 @@ NATS/JetStream, reusing the existing hermetic/operator-mode test machinery.
   JOURNEY.md.
 - **Bar 2 — a dead node cannot leak open work.** SIGKILL the placing node
   mid-workload (no graceful-shutdown path runs): in **10/10 kills** the work
-  item closes as `work.abandon` on the stream, emitted by a surviving party,
-  within **≤ 2× the spike's chosen lease/liveness interval** (interval named
-  in JOURNEY.md before the runs); zero double-closes; no resurrected copy
-  unless re-placement is explicitly declared.
+  item verifiably leaves the claimed state within **≤ 2× the spike's chosen
+  liveness interval** (interval named in JOURNEY.md before the runs) — by
+  either mechanism: an explicit `work.abandon` from a surviving party lands
+  on the stream, **or** the claim expires by deterministic projection rule
+  (work.md's timed-out-claim reopen), such that stream replay alone shows
+  the item reopened or closed. The operative mechanism is recorded in
+  JOURNEY.md; zero double-closes; no resurrected copy unless re-placement
+  is explicitly declared. *(Amended openly 2026-07-29, before any run —
+  see JOURNEY.md.)*
 - **Bar 3 — scoped launch without the seed.** Node B launches a workload
   whose credential is minted without the realm signing seed ever existing on
   node B's disk (asserted in-test, as the k8s Secret path did): the
