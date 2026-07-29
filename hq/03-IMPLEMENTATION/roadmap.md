@@ -16,11 +16,13 @@ An agent runs and a tool answers (episodes 0004/0005); the hq's own structural
 lint rides the gate ([episode 0006](../04-JOURNEY/0006-hq-alignment.md)); and
 the same declarations now run unchanged inside microsandbox microVMs —
 constitution III proven by a second backend ([episode
-0007](../04-JOURNEY/0007-a-second-wall.md)). The **Kubernetes research gate
-is met** ([episode 0008](../04-JOURNEY/0008-kubernetes-backend.md) → design
-[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md)):
-Phase 2 is unblocked. The remaining horizons (Fleet, sandboxes-stage-5, the
-tool ecosystem) stay gated — see below.
+0007](../04-JOURNEY/0007-a-second-wall.md)). **Phase 2 is complete —
+M2.1 landed** ([episode 0008](../04-JOURNEY/0008-kubernetes-backend.md)
+research → [episode 0009](../04-JOURNEY/0009-a-third-wall-lands.md) build):
+the same declarations run as Kubernetes pods, artifact via a per-run OCI
+image through the operator's registry, credential as a Secret. The
+remaining horizons (Fleet, sandboxes-stage-5, the tool ecosystem) stay
+gated — see below.
 
 ## Phase 0 — Substrate (research) — ✅ closed 2026-07-22
 
@@ -71,28 +73,30 @@ criteria, made precise per feature in `specs/NNN-*/`:
   (Fleet-era). Upstream bug found and worked around: msb 0.6.7 cannot mount
   symlink-traversing sources.
 
-## Phase 2 — The Kubernetes backend (design → build) — *unblocked*
+## Phase 2 — The Kubernetes backend (design → build) — ✅ complete
 
-**Gate met 2026-07-29.** The `kubernetes-backend` research topic graduated to
-design with all four pre-registered bars measured PASS ([episode
-0008](../04-JOURNEY/0008-kubernetes-backend.md)): contract invariance
-(byte-identical declarations, unchanged seam), artifact-to-pod without
-declaration leakage, supervision parity with zero leftovers, and a scoped
-credential enforced from inside a pod against Synadia NGS. Runs the spec-kit
-flow against design
-[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md) §8:
+**Gate met 2026-07-29** (research [episode
+0008](../04-JOURNEY/0008-kubernetes-backend.md), all four pre-registered
+bars measured PASS); **landed the same day**.
 
-- **M2.1 — Kubernetes backend.** Not started. Exit criteria per design 0002
-  §8: the byte-identical M1.1/M1.2 declarations run as pods with the
+- **M2.1 — Kubernetes backend.** ✅ **Done** ([episode
+  0009](../04-JOURNEY/0009-a-third-wall-lands.md);
+  [`specs/004-kubernetes-backend/`](../../specs/004-kubernetes-backend/)).
+  All exit criteria met, measured on a real kind cluster + local OCI
+  registry: the byte-identical M1.1/M1.2 declarations run as pods with the
   identical op mapping (native control arm asserting the declaration
-  byte-for-byte); crash → `work.abandon`; a scope probe inside a pod against
-  an operator-mode NATS denied out-of-scope with its credential delivered as
-  a Secret; zero pods/Secrets after every end of life; runner, minter, and
-  declaration untouched. Default gate hermetic; real-cluster proof is an
-  opt-in kind/k3d target following the `make test-msb` pattern. The spec
-  pass decides the two named `[O]`s: the artifact channel (node HTTP vs
-  object store over `nats://`) and the client internal (client-go vs
-  supervised `kubectl`).
+  byte-for-byte); crash → `work.abandon`; an out-of-band pod deletion still
+  closes as `work.abandon` with no resurrected copy; the scope probe inside
+  a pod against an operator-mode NATS is denied out-of-scope with its
+  credential Secret-delivered (and never on host disk); zero pods/Secrets
+  after every end of life; runner, minter, and declaration untouched
+  (`backend/natsurl` extracted below the seam, msb suite still green). The
+  two `[O]`s were decided in the plan: **an OCI-registry artifact channel**
+  (a recorded reversal — the plan's HTTP draft was rejected by the
+  maintainer; an open amendment to design 0002's candidates, propagated) and
+  **client-go inside `backend/k8s`** (after teach-back). Gate:
+  `make check && make test-k8s` green (five e2e scenarios, ~26 s;
+  environment via `scripts/kind-registry.sh up`).
 
 ## Later horizons (named, not planned)
 

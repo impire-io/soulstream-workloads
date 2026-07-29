@@ -143,9 +143,12 @@ selects a backend; the declaration is unchanged across them (constitution III).
   env contract, with loopback NATS rewritten to the guest's host alias under
   a host-only network policy. Seam contract frozen in
   [`specs/003-microsandbox-backend/contracts/backend-seam.md`](../../specs/003-microsandbox-backend/contracts/backend-seam.md).
-- **Kubernetes pod** `[D]` — third backend, research-validated (all four
-  pre-registered bars measured PASS — episode 0008) and designed in
-  [`0002-kubernetes-backend.md`](0002-kubernetes-backend.md); not yet built.
+- **Kubernetes pod** `[D]` — third backend, landed M2.1 (episode 0009;
+  designed in [`0002-kubernetes-backend.md`](0002-kubernetes-backend.md),
+  research episode 0008). One runner-supervised pod per workload; the
+  identical env contract with the credential as a Secret; the artifact as a
+  per-run OCI image via the operator's registry (an open amendment to
+  0002's graduation-time channel candidates); backend chosen node-side.
 - **Docker/OCI** `[O]`, **Firecracker microVM** `[O]` — each a backend plugin
   behind one interface: fetch the artefact, inject the xkey-encrypted
   creds/env, start, stream lifecycle as ops, stop, reap.
@@ -177,11 +180,10 @@ Named so their absence is deliberate; each has a seam.
 
 - **Multi-node placement / scheduling** `[O]` — first build is single-node; the
   claim-in-ops seam (§5) is where it grows.
-- **Docker / Firecracker backends** `[O]` — native + microsandbox first
-  (amended 2026-07-28); §6 is the seam. The **Kubernetes backend** left this
-  list on 2026-07-29: its research gate is met and it is designed
-  ([`0002-kubernetes-backend.md`](0002-kubernetes-backend.md)), awaiting its
-  spec-kit pass.
+- **Docker / Firecracker backends** `[O]` — §6 is the seam. The
+  **Kubernetes backend** left this list on 2026-07-29 and landed as M2.1
+  ([`0002-kubernetes-backend.md`](0002-kubernetes-backend.md), episode
+  0009).
 - **Sandboxes** (soulstream work stage 5) — gated on stage-4 execution being
   real first; a later design doc.
 - **Tool discovery/marketplace** — the `tool` role runs; rich discovery is

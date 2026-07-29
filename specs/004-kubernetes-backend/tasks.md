@@ -208,7 +208,7 @@ bookkeeping.
       no registry, no kubeconfig context present — no hidden dependency)
       and `make test-k8s` (real kind + registry) — both green, nothing
       skipped (SC-005)
-- [ ] T020 Land per roadmap discipline, same merge: roadmap.md Phase 2/M2.1
+- [x] T020 Land per roadmap discipline, same merge: roadmap.md Phase 2/M2.1
       closed with the measured outcome; design 0002 §3/§6 amended with the
       OCI-registry decision (the spec's open-amendment note propagated) and
       §5/§6 for anything else that drifted; design 0001 §6 backend list

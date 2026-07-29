@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-kubernetes-backend`
 **Created**: 2026-07-29
-**Status**: Draft
+**Status**: Shipped
 **Input**: Roadmap Phase 2 M2.1, from design
 [`hq/02-DESIGN/0002-kubernetes-backend.md`](../../hq/02-DESIGN/0002-kubernetes-backend.md)
 (graduated from the `kubernetes-backend` research topic — all four

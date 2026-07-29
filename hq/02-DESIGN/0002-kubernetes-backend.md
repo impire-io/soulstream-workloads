@@ -1,12 +1,17 @@
 # 0002 — The Kubernetes backend
 
 **Status of this document:** graduated from the `kubernetes-backend` research
-topic (episode 0008). All four pre-registered bars were **measured PASS**
-via spikes on a kind cluster, the last against Synadia NGS (operator-mode,
-enforcement real). Tags mark what those spikes validated **[V]**, what is
-designed on top of them **[D]**, and the internals still open **[O]**.
-Written functional-level so `/speckit-specify` can turn it into a feature
-spec without guessing.
+topic (episode 0008); **built and landed as M2.1**
+([`specs/004-kubernetes-backend/`](../../specs/004-kubernetes-backend/),
+episode 0009). All four pre-registered research bars were **measured PASS**
+via spikes, and the implementation's five e2e scenarios run green on a real
+cluster (`make test-k8s`). The `[O]`s this document carried were decided in
+the spec-kit pass: the **artifact channel** landed as a per-run OCI image
+via the operator's registry — an **open amendment**, decided by the
+maintainer during planning; neither of the two candidates listed at
+graduation (node-side HTTP, object store over `nats://`) was chosen — and
+the **client internal** landed as client-go wrapped inside `backend/k8s`.
+Tags mark what is validated **[V]** and what remains open **[O]**.
 
 Maturity tags per [`README.md`](README.md). Seam vocabulary per
 [`0001-soulrealm-runtime.md`](0001-soulrealm-runtime.md) §6 and the frozen
@@ -56,22 +61,26 @@ Fleet horizon's question, explicitly not this backend's.
 
 ## 3. Artifact delivery
 
-- **Generic runner image + fetch at pod start** `[V]`: a stock minimal
-  image fetches the artifact bytes and execs them. No per-workload image is
-  ever built; nothing image-shaped appears in any declaration.
+- **Per-run OCI image via the operator's registry** `[V]` (landed M2.1; an
+  open amendment to this document's graduation-time candidates — decided by
+  the maintainer in the specs/004 plan, research D2): the backend layers
+  the resolved artifact bytes onto the CA-trusted base image (binary at
+  `/workload`, the entrypoint), pushes **digest-pinned** to an
+  operator-configured OCI registry (pure-Go assembly, no builder daemon),
+  and the pod runs that image as its single container. The kubelet pulls it
+  like any image — authenticated, digest-verified, cached. No fetch
+  machinery exists inside the pod; integrity is the image digest.
 - The node honours M1.3's **stable declared path / per-run provisioned
-  content** convention: the backend reads the artifact bytes at `Start`
-  time and stages them for the pod `[V]`.
-- **Pre-launch platform verification** `[D]` (mechanism measured `[V]`):
-  the backend MUST refuse a non-ELF artifact node-side before creating the
-  pod — a mismatched binary otherwise fails unreadably in-pod (busybox `sh`
-  interprets Mach-O as a shell script; episode 0008).
-- **Channel** `[O]`: the spike used a node-side HTTP server (cheapest
-  faithful mechanism). The design-level candidate is the soulstream object
-  store over a `nats://` artifact scheme — which the declaration validator
-  already anticipates — so every backend fetches from the realm's own
-  store. The spec pass decides; the interface (fetch-then-exec inside a
-  generic image) is fixed either way.
+  content** convention: declarations stay `file://` and byte-identical; the
+  image reference exists only in the pod spec the node writes `[V]`.
+- **Pre-launch platform verification** `[V]`: the backend refuses a
+  non-ELF artifact node-side before any registry or cluster call — a
+  mismatched binary otherwise fails unreadably in-pod (episode 0008).
+- The registry holds per-run images as **transport cache under operator
+  retention** — content derived from the declared artifact, not a store of
+  record (constitution I). The soulstream object store over `nats://`
+  remains the eventual *declared-addressing* question, deferred to the
+  artifact-registry milestone.
 - **Node architecture** `[O]`: the guest must match the cluster node's
   platform (linux/<node-arch>). On the dev machine the kind node matches
   host GOARCH `[V]`; heterogeneous real clusters need node-arch-aware
@@ -87,10 +96,11 @@ Fleet horizon's question, explicitly not this backend's.
   lifetime. The credential is short-lived and persona-scoped, which bounds
   the exposure; a cluster with etcd encryption at rest tightens it. This is
   recorded, not solved `[D]`.
-- **TLS realms:** the generic image MUST carry a CA trust store — measured:
+- **TLS realms:** the base image MUST carry a CA trust store — measured:
   busybox has none and Go's cert pool comes up empty; alpine ships
   `ca-certificates-bundle` and connected to NGS over TLS end-to-end `[V]`.
-  The default image is therefore one with CA trust.
+  The default base (`alpine:3.22`) therefore carries trust, and every
+  per-run artifact image inherits it.
 
 ## 5. Supervision and exit mapping
 
@@ -114,30 +124,36 @@ Fleet horizon's question, explicitly not this backend's.
 
 ## 6. Node-side configuration surface
 
-All of it node configuration; none of it may appear in a declaration.
+All of it node configuration (`SOULREALM_K8S_*`); none of it may appear in
+a declaration. As landed `[V]`:
 
-- Cluster access: kubeconfig + context (or in-cluster config), target
-  namespace `[D]`.
-- Generic image (default: a minimal image with CA trust, §4) `[D]`.
-- Artifact serving/channel configuration (§3) `[O]`.
-- Host alias for loopback rewrite (environment-specific; e.g. the Docker
-  Desktop host address under kind) `[V]`.
-- **Client internal** `[O]`: the spike used client-go (dependency weight
-  measured: 68-module graph). The alternative is supervising `kubectl` as a
-  child process (the msb pattern, no heavy dependency). The spec pass
-  decides; the seam is indifferent.
+- Cluster access: kubeconfig via client-go's standard loading rules +
+  `SOULREALM_K8S_CONTEXT`; target namespace `SOULREALM_K8S_NAMESPACE`.
+- `SOULREALM_K8S_REGISTRY` (required): the OCI repository prefix per-run
+  artifact images are pushed to and pulled from.
+- `SOULREALM_K8S_BASE_IMAGE` (default `alpine:3.22`): the CA-trusted base.
+- `SOULREALM_K8S_HOST_ALIAS`: loopback-rewrite target
+  (environment-specific; e.g. the Docker Desktop host address under kind).
+  A loopback realm with no alias fails loud pre-launch.
+- **Client internal** (decided in the specs/004 plan, research D1):
+  client-go, wrapped entirely inside `backend/k8s` — the typed watch is the
+  load-bearing operation, and the fake clientset is the hermetic test seam.
+  Nothing above the seam sees a Kubernetes type.
 
 ## 7. Quality gate shape
 
-The default suite stays hermetic (no cluster, no external dependency —
-constitution VI). Real end-to-end proof is an **opt-in target against a
-local kind/k3d cluster** following the `make test-msb` pattern: without the
-tag the tests do not exist; with it they must pass `[D]`.
+The default suite stays hermetic (fake clientset, in-process registry and
+NATS — constitution VI). Real end-to-end proof is `make test-k8s` against a
+local kind cluster + local OCI registry (`scripts/kind-registry.sh up`),
+build-tagged `k8s_e2e`: without the tag the tests do not exist; with it
+they must pass `[V]`. The M2.1 gate is `make check && make test-k8s`.
 
 ## 8. Acceptance criteria
 
-The spec-kit feature out of this doc must demonstrate, mirroring the
-research bars on a real cluster:
+**All met at M2.1 landing** (episode 0009; `make test-k8s` green — five e2e
+scenarios in ~26 s on kind, plus the hermetic unit suites). The spec-kit
+feature out of this doc demonstrated, mirroring the research bars on a real
+cluster:
 
 1. The byte-identical M1.1/M1.2 declarations run as pods with the identical
    op mapping — agent turn + `work.open/claim/done`; tool discovery +
