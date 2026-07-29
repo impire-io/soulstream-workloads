@@ -123,3 +123,65 @@ distinguish dead from partitioned (false abandon → deterministic fold
 collision → at-least-once semantics, to be named in the design), and a
 zombie that answers probes without progressing can suppress reclaim —
 cap policy is design-doc material, not spiked here.
+
+## 2026-07-29 — spike 2: node death — Bar 2 met in both variants
+
+**Protocol as pre-registered** (spike code in the session scratchpad; same
+bench as spike 1, node binary extended with the sweeper, the PING responder,
+and body-directed progress mode). Per variant: two control rounds, then 10
+kill rounds — open item, wait for claim + launch evidence, SIGKILL the
+owner's process (no graceful path), measure from the kill to the fold
+showing the item out of `claimed`; harness then closes the item and a
+replacement node joins so every round stays two-node.
+
+**Baseline (registered mechanism: `StaleClaims` nominates, a surviving
+sweeper's ordinary `work.abandon` decides)** `[measured]`:
+
+- **10/10 kills reopened within the ≤ 4 s bound**: min 2.02 s, mean
+  2.37 s, max 2.53 s from SIGKILL.
+- **Zero double-closes** (exactly one non-void abandon per kill — racing
+  sweeps converged as designed), **zero resurrections** (no non-void claim
+  after any abandon), and no abandon ever authored by the dead owner.
+- Control progress\@1 s: never abandoned across 3× window — anchored
+  progress keeps the claim fresh.
+- Control live-silent: **falsely abandoned at 2.5 s** — the pre-registered
+  false positive, now quantified: absence-of-progress liveness makes the
+  sweep window a hard progress-cadence floor.
+
+**Probe variant (probe-before-abandon)** `[measured]`:
+
+- **10/10 kills within the bound at statistically identical cost**: min
+  2.01 s, mean 2.37 s, max 2.55 s — the probe added no measurable latency
+  to true positives.
+- Why it is free on true positives: a dead node's PING subscription dies
+  with its connection, so the probe fails **instantly** with NATS
+  no-responders instead of consuming the 500 ms timeout; the full timeout
+  is only paid when the owner is subscribed but unreachable — a true
+  partition `[measured via the latency comparison; mechanism-argument for
+  the explanation]`.
+- Control live-silent: **zero false abandons** across 3× window; 8 probe
+  vetoes visible in node stderr logs — deliberately log-level evidence,
+  not stream record.
+- Probes rode `SOULREALM.NODE.<realm>.<persona>.PING` (core NATS); the
+  `SOULSTREAM` stream captures only `SOULSTREAM.>`, so probe traffic
+  cannot pollute the record by construction `[mechanism-argument]`.
+
+**Mechanism recorded** (as the amended bar requires): the hybrid —
+**projection nominates** (`StaleClaims`), **transient evidence vetoes**
+(probe reply; evidence-not-authority), **the log decides** (an ordinary
+`work.abandon`; the second abandon folds void, observed as zero
+double-closes across 21 abandons in 2×10 kills + 1 baseline false
+positive).
+
+**Caveats** `[mechanism-argument]`: single host, shared clock —
+`StaleClaims` compares author-claimed op timestamps against the sweeper's
+local clock, so cross-node skew widens or narrows the effective window in a
+real fleet (the design must state a tolerance). Partition-vs-death stays
+undecidable; the semantic is at-least-once with the fold resolving the
+collision deterministically. The zombie-suppression cap remains a design
+question, not spiked.
+
+**Where the bars stand**: Bar 1 measured PASS-shaped (spike 1), Bar 2
+measured PASS-shaped in both variants (this spike). Remaining before
+graduation: **Bar 3** — scoped launch without the signing seed on the
+launching node.
