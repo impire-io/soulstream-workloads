@@ -314,26 +314,8 @@ func TestSymlinkedPathsResolved(t *testing.T) {
 	}
 }
 
-func TestRewriteServer(t *testing.T) {
-	const alias = DefaultHostAlias
-	cases := []struct{ in, want string }{
-		{"nats://127.0.0.1:4222", "nats://" + alias + ":4222"},
-		{"nats://localhost:4222", "nats://" + alias + ":4222"},
-		{"nats://[::1]:4222", "nats://" + alias + ":4222"},
-		{"nats://127.0.0.1", "nats://" + alias},
-		{"tls://127.0.0.1:4222", "tls://" + alias + ":4222"},
-		{"nats://10.1.2.3:4222", "nats://10.1.2.3:4222"},
-		{"nats://nats.example.com:4222", "nats://nats.example.com:4222"},
-		{"127.0.0.1:4222", alias + ":4222"},
-		{"localhost", alias},
-		{"nats.example.com", "nats.example.com"},
-	}
-	for _, c := range cases {
-		if got := rewriteServer(c.in, alias); got != c.want {
-			t.Errorf("rewriteServer(%q) = %q, want %q", c.in, got, c.want)
-		}
-	}
-}
+// TestRewriteServer moved to backend/natsurl (M2.1 extraction) — the env
+// integration below still asserts msb passes rewritten servers through.
 
 func TestSandboxName(t *testing.T) {
 	cases := []struct{ in, want string }{

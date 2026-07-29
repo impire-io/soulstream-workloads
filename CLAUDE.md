@@ -28,11 +28,14 @@ and the same declarations run unchanged inside microsandbox microVMs —
 backend chosen node-side, constitution III proven ([journey
 0007](hq/04-JOURNEY/0007-a-second-wall.md)). The real-microVM proof is
 `make test-msb` (needs `msb` installed); the default gate stays hermetic.
-The **Kubernetes backend research gate is met** ([journey
-0008](hq/04-JOURNEY/0008-kubernetes-backend.md) → design
-[`0002-kubernetes-backend.md`](hq/02-DESIGN/0002-kubernetes-backend.md)):
-Phase 2 / M2.1 awaits its spec-kit pass. Later horizons (Fleet / sandboxes /
-tool ecosystem) stay gated (roadmap).
+**Phase 2 / M2.1 has landed**: the same declarations run as Kubernetes pods
+([journey 0008](hq/04-JOURNEY/0008-kubernetes-backend.md) research →
+[journey 0009](hq/04-JOURNEY/0009-a-third-wall-lands.md) build; design
+[`0002-kubernetes-backend.md`](hq/02-DESIGN/0002-kubernetes-backend.md)) —
+artifact as a per-run OCI image via the operator's registry, credential as
+a Secret, runner-supervised pods. The real-cluster proof is `make test-k8s`
+(needs `scripts/kind-registry.sh up`); the default gate stays hermetic.
+Later horizons (Fleet / sandboxes / tool ecosystem) stay gated (roadmap).
 
 ## The rules that bind every change
 

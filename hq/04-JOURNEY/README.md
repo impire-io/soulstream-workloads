@@ -101,10 +101,21 @@ Secret. One expectation inverted: on non-loopback NATS, Kubernetes is
 *ahead* of the microVM backend (ordinary pod egress vs msb's Fleet-era
 `public` profile). Named honestly: pods are weaker isolation than microVMs —
 the case is adoption, not isolation. Opened design
-[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md);
-roadmap Phase 2 (M2.1) is unblocked. **Next:** the spec-kit pass for the
-Kubernetes backend, and research gates for the later horizons — Fleet,
-sandboxes (stage 5), tool ecosystem.
+[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md).
+
+**M2.1 is done — Phase 2 is complete** ([episode
+0009](0009-a-third-wall-lands.md)): `backend/k8s` landed through the full
+spec-kit flow — one runner-supervised pod per workload, credential as a
+Secret that never touches host disk, artifact as a per-run OCI image on the
+CA-trusted base pushed digest-pinned to the operator's registry. Five e2e
+scenarios green on kind + a local registry in ~26 s (`make test-k8s`);
+default gate hermetic; `make test-msb` still green. Two recorded decisions
+from planning: the artifact channel **reversed** from the draft's node HTTP
+to an OCI-registry interface (maintainer decision — an open amendment to
+design 0002's candidates), and client-go was chosen after teach-back, kept
+entirely inside `backend/k8s`. **Next:** research gates for the later
+horizons — Fleet, sandboxes (stage 5), tool ecosystem — and the `nats://`
+artifact-addressing question at the artifact-registry milestone.
 
 ## Episode index
 
@@ -118,3 +129,4 @@ sandboxes (stage 5), tool ecosystem.
 | 0006 | [HQ alignment: the lint gets built](0006-hq-alignment.md) |
 | 0007 | [A second wall: the microsandbox backend](0007-a-second-wall.md) |
 | 0008 | [A third wall on rented ground: Kubernetes as a backend](0008-kubernetes-backend.md) |
+| 0009 | [A third wall lands: the Kubernetes backend ships](0009-a-third-wall-lands.md) |

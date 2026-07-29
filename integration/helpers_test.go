@@ -23,6 +23,9 @@ func buildCmd(t *testing.T, importPath string) string {
 	return bin
 }
 
+// buildCmdLinux, buildInline, and e2eMinter live in e2e_helpers_test.go,
+// tag-gated `msb_e2e || k8s_e2e` with their only callers.
+
 // writeCreds writes a minted credential to a NATS creds file and returns its path.
 func writeCreds(t *testing.T, cred minter.PersonaScopedCredential) string {
 	t.Helper()

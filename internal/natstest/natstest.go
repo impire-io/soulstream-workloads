@@ -10,10 +10,21 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 )
 
+// Option adjusts the in-process server's options before start. Defaults stay
+// loopback-bound; e2e suites whose workloads run behind a wall (microVM
+// guest, Kubernetes pod) bind 0.0.0.0 so the server is reachable through the
+// backend's host alias (M2.1, T015).
+type Option func(*server.Options)
+
+// WithBindAddress binds the server to addr instead of 127.0.0.1.
+func WithBindAddress(addr string) Option {
+	return func(o *server.Options) { o.Host = addr }
+}
+
 // StartJetStream starts an in-process NATS server with JetStream enabled, backed
 // by a per-test temporary store directory, and returns its client URL together
 // with a cleanup function.
-func StartJetStream(t *testing.T) (url string, cleanup func()) {
+func StartJetStream(t *testing.T, options ...Option) (url string, cleanup func()) {
 	t.Helper()
 
 	opts := &server.Options{
@@ -23,6 +34,9 @@ func StartJetStream(t *testing.T) (url string, cleanup func()) {
 		Port:      -1,
 		NoLog:     true,
 		NoSigs:    true,
+	}
+	for _, o := range options {
+		o(opts)
 	}
 
 	ns, err := server.NewServer(opts)
