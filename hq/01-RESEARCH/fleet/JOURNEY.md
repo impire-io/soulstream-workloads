@@ -102,3 +102,24 @@ abandoned; a live but **silent** owner is expected to be falsely abandoned at
 tension that absence-of-progress liveness makes progress cadence a *floor*
 for long-running work (work.md stage 4 already says runners "stream progress
 as ops", but the growth bound and the sub-topic question then apply).
+
+**Probe variant, registered before any run (additive).** A second sweeper
+variant answers the false positive with transient evidence instead of
+durable chatter: before abandoning a stale candidate, the sweeper sends one
+core-NATS request-reply probe to the owning node —
+`SOULREALM.NODE.<realm>.<persona>.PING`, **outside** the `SOULSTREAM.>`
+JetStream capture, probe timeout **500 ms** (inside the 4 s bound). The
+governing rule: **evidence, not authority** — a reply only vetoes *this
+sweep's* abandon (delays a decision); silence lets the abandon proceed;
+every state transition remains an ordinary op; replay stays complete
+without the probes. Failure degrades toward reclaim, never toward leak.
+Sweepers skip items they themselves own in both variants. Both variants
+run the full protocol: **10 kill rounds each** against the same ≤ 4 s
+bound, plus the two control rounds — progress\@1 s must be abandoned in
+neither variant; the live-silent owner is expected falsely abandoned at
+~window in the baseline (measured) and **not at all** over 3× window in
+the probe variant. Known limits registered up front: a probe cannot
+distinguish dead from partitioned (false abandon → deterministic fold
+collision → at-least-once semantics, to be named in the design), and a
+zombie that answers probes without progressing can suppress reclaim —
+cap policy is design-doc material, not spiked here.
