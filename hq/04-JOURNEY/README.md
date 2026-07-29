@@ -14,7 +14,7 @@ are as load-bearing as the shipped code.
 > reversals, and findings that contradicted expectations. This duty is
 > anchored in `../00-GENESIS/how-we-work.md`.
 
-## Where things stand (2026-07-28)
+## Where things stand (2026-07-29)
 
 **The project was founded** ([episode 0001](0001-genesis.md)): soulrealm is the
 runtime companion to soulstream — soulstream records, soulrealm runs. The hq is
@@ -89,8 +89,22 @@ host alias under a host-only network policy; backend selection is node-side
 default suite stays hermetic (stub CLI); `make test-msb` boots real microVMs.
 A refuted diagnosis is on record (":ro unsupported" was really msb failing on
 symlinked mount sources), plus a named limitation (remote NATS needs the
-`public` profile — Fleet-era). **Next:** the later horizons get research
-gates — Fleet, sandboxes (stage 5), tool ecosystem.
+`public` profile — Fleet-era).
+
+**The Kubernetes gate is met** ([episode 0008](0008-kubernetes-backend.md)):
+the `kubernetes-backend` research topic pre-registered four bars and four
+spikes measured all four PASS — a prototype backend behind the *unchanged*
+seam ran the byte-identical M1.1/M1.2 declarations as pods on kind (agent,
+tool round trip, crash → abandon), and a scope probe inside a pod against
+Synadia NGS was denied out-of-scope with its credential delivered as a
+Secret. One expectation inverted: on non-loopback NATS, Kubernetes is
+*ahead* of the microVM backend (ordinary pod egress vs msb's Fleet-era
+`public` profile). Named honestly: pods are weaker isolation than microVMs —
+the case is adoption, not isolation. Opened design
+[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md);
+roadmap Phase 2 (M2.1) is unblocked. **Next:** the spec-kit pass for the
+Kubernetes backend, and research gates for the later horizons — Fleet,
+sandboxes (stage 5), tool ecosystem.
 
 ## Episode index
 
@@ -103,3 +117,4 @@ gates — Fleet, sandboxes (stage 5), tool ecosystem.
 | 0005 | [A tool answers](0005-a-tool-answers.md) |
 | 0006 | [HQ alignment: the lint gets built](0006-hq-alignment.md) |
 | 0007 | [A second wall: the microsandbox backend](0007-a-second-wall.md) |
+| 0008 | [A third wall on rented ground: Kubernetes as a backend](0008-kubernetes-backend.md) |

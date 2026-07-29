@@ -16,8 +16,11 @@ An agent runs and a tool answers (episodes 0004/0005); the hq's own structural
 lint rides the gate ([episode 0006](../04-JOURNEY/0006-hq-alignment.md)); and
 the same declarations now run unchanged inside microsandbox microVMs —
 constitution III proven by a second backend ([episode
-0007](../04-JOURNEY/0007-a-second-wall.md)). Next horizon: to be gated
-(Fleet, sandboxes-stage-5, or the tool ecosystem — see below).
+0007](../04-JOURNEY/0007-a-second-wall.md)). The **Kubernetes research gate
+is met** ([episode 0008](../04-JOURNEY/0008-kubernetes-backend.md) → design
+[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md)):
+Phase 2 is unblocked. The remaining horizons (Fleet, sandboxes-stage-5, the
+tool ecosystem) stay gated — see below.
 
 ## Phase 0 — Substrate (research) — ✅ closed 2026-07-22
 
@@ -67,6 +70,29 @@ criteria, made precise per feature in `specs/NNN-*/`:
   limitation: a non-loopback NATS server needs the `public` net profile
   (Fleet-era). Upstream bug found and worked around: msb 0.6.7 cannot mount
   symlink-traversing sources.
+
+## Phase 2 — The Kubernetes backend (design → build) — *unblocked*
+
+**Gate met 2026-07-29.** The `kubernetes-backend` research topic graduated to
+design with all four pre-registered bars measured PASS ([episode
+0008](../04-JOURNEY/0008-kubernetes-backend.md)): contract invariance
+(byte-identical declarations, unchanged seam), artifact-to-pod without
+declaration leakage, supervision parity with zero leftovers, and a scoped
+credential enforced from inside a pod against Synadia NGS. Runs the spec-kit
+flow against design
+[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md) §8:
+
+- **M2.1 — Kubernetes backend.** Not started. Exit criteria per design 0002
+  §8: the byte-identical M1.1/M1.2 declarations run as pods with the
+  identical op mapping (native control arm asserting the declaration
+  byte-for-byte); crash → `work.abandon`; a scope probe inside a pod against
+  an operator-mode NATS denied out-of-scope with its credential delivered as
+  a Secret; zero pods/Secrets after every end of life; runner, minter, and
+  declaration untouched. Default gate hermetic; real-cluster proof is an
+  opt-in kind/k3d target following the `make test-msb` pattern. The spec
+  pass decides the two named `[O]`s: the artifact channel (node HTTP vs
+  object store over `nats://`) and the client internal (client-go vs
+  supervised `kubectl`).
 
 ## Later horizons (named, not planned)
 
