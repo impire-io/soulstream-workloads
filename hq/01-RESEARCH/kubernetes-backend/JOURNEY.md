@@ -115,3 +115,65 @@ scratchpad wired to the *real* runner, byte-identical M1.1/M1.2
 declarations, against a NATS the pods can reach (a spike server bound to
 `0.0.0.0` reached via the host alias, or the maintainer's environment once
 its coordinates arrive). Bar 4 waits on the maintainer's NATS environment.
+
+## 2026-07-29 — spike C: Bar 1 integration — PASS (and Bars 2/3 with it)
+
+**Protocol:** a prototype Kubernetes backend (~290 lines, scratchpad
+`spike-c-bar1/`, never merged) implementing `backend.Backend` behind the
+unchanged seam, driven by the **real** runner/minter/declaration imported
+from the repo via `replace` — the working tree stayed byte-clean
+throughout (`git status` empty, checked after the runs). The harness
+mirrors `integration/msb_e2e_test.go` scenario for scenario against the
+kind cluster; the in-process JetStream server binds `0.0.0.0` so pods reach
+it at the Docker Desktop host alias, while runner and minter keep loopback
+URLs — the backend's loopback rewrite (msb parity) is exactly what gets
+exercised. Prototype shape: pod per workload (`restartPolicy: Never`,
+name = work-item id, msb's naming convention), creds as a Secret mounted
+read-only, scratch as in-pod `emptyDir` workdir, generic `busybox:1.36`
+wget-and-execs the artifact staged on a node-side HTTP server, watch-based
+supervision capturing termination state on every update (spike A lesson),
+128+n signal inference, ELF check pre-launch (spike B lesson), reap of
+pod + secret + staged artifact at end of life.
+
+**Results (single run each, 2026-07-29) — all [measured]:**
+
+- `TestK8sLaunchAgentEndToEnd` PASS 3.41s — ONE declaration value,
+  marshalled byte-for-byte identical across the native control run and the
+  pod run (asserted in-test); two turns by `researcher`, two `work.done`.
+- `TestK8sAgentCallsToolEndToEnd` PASS 2.05s — tool inside a pod,
+  discovered by name, uppercase round trip, `Stop` → `work.done`.
+- `TestK8sCrashAbandons` PASS 2.00s — exit-3 in the pod → `work.abandon`.
+- Zero pods and zero secrets after every scenario (asserted per-test and
+  re-checked with `kubectl` after the suite: namespace empty).
+- Whole tri-scenario suite: 7.9s.
+
+**Bar verdicts this spike supports:**
+
+- **Bar 1 — PASS [measured].** Byte-identical declarations, runner/minter/
+  declaration untouched, no backend named anywhere but node-side wiring.
+  The `backend.Backend`/`Handle` interface needed **no amendment**.
+- **Bar 2 — PASS [measured].** No image reference, no Kubernetes-specific
+  field; the same `file://` declaration served native and pod runs under
+  the stable-path/provisioned-content convention. Channel decided for the
+  spike: node-side HTTP fetch — the cheapest faithful mechanism; whether
+  the real channel is the soulstream object store over `nats://` is a
+  design decision (it rides the same connectivity Bar 4 proves), recorded
+  for graduation.
+- **Bar 3 — PASS [measured].** All three ends of life produced the
+  native/msb op sequences through the real runner; exit status mapped
+  (with the 128+n inference); nothing left behind.
+
+**Honest caveats:** the spike NATS is the *open* in-process server — the
+mint+delivery path is exercised, scope **enforcement** is not (same caveat
+the msb e2e carries); that is Bar 4's job on the maintainer's environment.
+`ScratchDir` in `LaunchSpec` is host-shaped — under Kubernetes it only
+donates the work-item id as the pod name while scratch lives in-pod
+(seam note for the design, not an interface change). The host alias is
+Docker-Desktop-specific node config; a real cluster needs a routable NATS
+address, which the maintainer's environment provides. All measurements are
+single-run.
+
+**Standing:** Bars 1–3 measured PASS; Bar 4 open, blocked on the
+maintainer's non-loopback NATS environment (needs an operator-mode/scoped
+setup so enforcement is real). When Bar 4 runs, the topic is ready for
+`/research-graduate kubernetes-backend --to design`.
