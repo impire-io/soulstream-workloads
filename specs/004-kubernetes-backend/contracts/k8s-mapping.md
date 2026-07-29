@@ -22,10 +22,13 @@ pattern), asserted by `backend/k8s`'s unit tests against the fake clientset.
 - **Scratch**: `emptyDir` at `/scratch`, the container workdir (native
   parity: cwd = scratch). `LaunchSpec.ScratchDir` donates only the
   work-item id.
-- **Artifact**: node-side ELF check → staged bytes + sha256 → per-run HTTP
-  listener → in-pod `fetch → sha256sum -c → chmod +x → exec "$@"` with
-  `spec.Args`; the declared artifact reference never changes (M1.3's
-  stable-path/provisioned-content convention).
+- **Artifact**: node-side ELF check → per-run OCI image (artifact layer on
+  the CA-trusted `BaseImage`, binary at `/workload` = entrypoint) → pushed
+  digest-pinned to the operator's `Registry`, tagged with the work-item id
+  → the pod's single container runs it, `command = ["/workload",
+  spec.Args…]`. Integrity is the image digest, enforced by the kubelet. The
+  declared artifact reference never changes (M1.3's stable-path/
+  provisioned-content convention).
 - **Env**: exactly the workload-env contract; `SOULREALM_NATS_SERVERS`
   loopback hosts rewritten to the node's `HostAlias` (shared
   `backend/natsurl` helper — same behavior msb's tests pin); non-loopback
@@ -38,14 +41,17 @@ pattern), asserted by `backend/k8s`'s unit tests against the fake clientset.
   expressed in cluster vocabulary. Stop publishes nothing; the runner owns
   the terminal op.
 - **Reap** (every end of life): delete pod (grace 0, idempotent) + delete
-  Secret + remove staged artifact + close listener. Zero leftovers is
-  asserted e2e by listing the managed-by label.
+  Secret. Zero cluster-side leftovers is asserted e2e by listing the
+  managed-by label; per-run images in the registry are operator-retention
+  transport cache, not run state.
 - **No ops, no control channel**: the backend never touches NATS; the
   supervision watch is read-only cluster state, not a coordination channel.
 
 ## Start-failure rollback
 
-Any failure between staging and a running supervision goroutine unwinds
-what was created (staged bytes, Secret, pod if created) and returns an
-error — the runner then publishes `work.open` + `work.abandon` with no
-dangling claim, identical to native/msb semantics.
+Any failure between the ELF check and a running supervision goroutine
+unwinds what was created on the cluster (Secret, pod if created) and
+returns an error — the runner then publishes `work.open` + `work.abandon`
+with no dangling claim, identical to native/msb semantics. An image already
+pushed when a later step fails remains in the registry (operator retention
+— recorded, not hidden).

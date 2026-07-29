@@ -11,28 +11,33 @@ constitution III a third time by running the M1.1 agent and M1.2 tool
 declarations byte-identical under it. Every load-bearing mechanism is
 spike-validated (journey episode 0008): the pod carries the same
 `SOULREALM_*` env contract with the credential as a read-only Secret mount
-(research D3), a generic CA-trusted image fetches the node-staged,
-digest-verified artifact and execs it (D2/D6), a client-go watch supervises
-to terminal state capturing termination on every update (D1/D4), `Stop`
-maps to deletion-with-grace, and reap removes pod + Secret + staged
-artifact (D5). Nothing above the seam changes: declaration, minter, runner,
-and reference workloads are untouched except node-side backend selection in
-the CLI (FR-001). The two design-0002 `[O]`s are decided in research.md:
-client-go over a supervised `kubectl` (D1), node-staged HTTP over the
-object store for this milestone (D2).
+(research D3), the artifact ships as a **per-run OCI image** layered onto a
+CA-trusted base and pushed digest-pinned to the operator's registry — the
+pod runs it directly, entrypoint = artifact (D2/D6), a client-go watch
+supervises to terminal state capturing termination on every update (D1/D4),
+`Stop` maps to deletion-with-grace, and reap removes pod + Secret (D5).
+Nothing above the seam changes: declaration, minter, runner, and reference
+workloads are untouched except node-side backend selection in the CLI
+(FR-001). The two design-0002 `[O]`s are decided in research.md: client-go
+over a supervised `kubectl` (D1), and — a maintainer decision revising this
+plan's first draft — an OCI-registry artifact interface over both the
+draft's node-staged HTTP and the object store (D2).
 
 ## Technical Context
 
 **Language/Version**: Go 1.26 (module `github.com/impire-io/soulrealm`)
 **Primary Dependencies**: adds `k8s.io/client-go` + `k8s.io/api` +
-`k8s.io/apimachinery` (v0.36.x; 68-module graph, measured — research D1);
-existing nats.go/jwt/nkeys + soulstream client stay as-is
-**Storage**: none (constitution I — pod, Secret, and staged artifact are
-reaped; the Secret's in-cluster rest during a run is transient and named,
-research D3)
+`k8s.io/apimachinery` (v0.36.x; 68-module graph, measured — research D1)
+and `github.com/google/go-containerregistry` (pure-Go OCI assembly + push —
+research D2); existing nats.go/jwt/nkeys + soulstream client stay as-is
+**Storage**: none (constitution I — pod and Secret are reaped; the Secret's
+in-cluster rest during a run is transient and named, research D3; per-run
+artifact images in the operator's registry are transport cache under
+operator retention, research D2)
 **Testing**: `go test ./...` hermetic (`kubernetes/fake` clientset,
-in-process NATS); real-cluster e2e behind build tag `k8s_e2e` via
-`make test-k8s` against a local kind cluster (research D7)
+in-process NATS, in-process registry fake for assembly tests); real-cluster
+e2e behind build tag `k8s_e2e` via `make test-k8s` against a local kind
+cluster plus a local OCI registry (research D7)
 **Target Platform**: any Kubernetes cluster reachable via kubeconfig;
 dev-machine proof on kind (Docker Desktop, Apple Silicon); pod artifacts are
 `GOOS=linux GOARCH=<node-arch> CGO_ENABLED=0` builds (single-arch clusters —
@@ -53,10 +58,11 @@ reference workloads, one new backend package + a shared URL-rewrite helper
 *GATE: passed pre-research; re-checked post-design — no violations.*
 
 - **I — Substrate boundary**: PASS. The backend stores nothing durable: pod
-  and Secret are deleted at reap, the staged artifact and its listener are
-  per-run and reaped, and everything worth keeping is already ops on the
-  topic. The cluster's image cache is node-local operator state (the msb
-  image-cache precedent).
+  and Secret are deleted at reap, and everything worth keeping is already
+  ops on the topic. The cluster's image cache and the operator's registry
+  hold per-run artifact images as *transport cache derived from the
+  declared artifact*, under operator retention — node-local operator state,
+  not a store of record (the msb image-cache precedent, research D2).
 - **II — One identity, no privileged tier**: PASS. Same minter, same
   per-workload scoped credential; delivered as a read-only Secret readable
   by that workload's pod alone, and — tighter than native/msb — never
@@ -114,16 +120,19 @@ backend/
 │   └── natsurl.go       # extracted loopback→alias rewrite (was unexported in
 │                        #   msb); shared by msb + k8s — one implementation
 └── k8s/
-    ├── k8s.go           # Backend (node-side config; Start: stage+digest,
-    │                    #   Secret, pod spec, supervision goroutine) and
-    │                    #   handle (Wait/Stop, exit mapping, reap)
-    ├── serve.go         # per-run artifact staging + ephemeral HTTP listener
-    └── k8s_test.go      # hermetic unit tests against kubernetes/fake
-    └── serve_test.go    #   (specs, watch, grace, mapping, reap idempotency)
+    ├── k8s.go           # Backend (node-side config; Start: ELF check,
+    │                    #   image assemble+push, Secret, pod spec,
+    │                    #   supervision goroutine) and handle (Wait/Stop,
+    │                    #   exit mapping, reap)
+    ├── image.go         # per-run OCI assembly (artifact layer on BaseImage,
+    │                    #   entrypoint /workload) + digest-pinned push
+    │                    #   (go-containerregistry)
+    ├── k8s_test.go      # hermetic unit tests against kubernetes/fake
+    └── image_test.go    #   + an in-process registry for assembly/push
 
 cmd/soulrealm/main.go    # backend selection: SOULREALM_BACKEND=native|msb|k8s
-                         #   + SOULREALM_K8S_* node config (namespace, image,
-                         #   host alias, kubeconfig context, serve address);
+                         #   + SOULREALM_K8S_* node config (namespace, registry,
+                         #   base image, host alias, kubeconfig context);
                          #   fails loud on unknown values; declarations untouched
 
 integration/
@@ -133,7 +142,9 @@ integration/
 │                        #   scope probe from inside a pod
 └── helpers_test.go      # reused as-is (buildCmdLinux already exists)
 
-Makefile                 # + test-k8s target (go test -tags k8s_e2e ./integration/)
+Makefile                 # + test-k8s target (go test -tags k8s_e2e ./integration/;
+                         #   expects kind + a local OCI registry, the documented
+                         #   kind-with-registry pattern)
 ```
 
 **Structure Decision**: mirror `backend/native/` and `backend/msb/` with
@@ -148,31 +159,33 @@ hermetic.
 ## Design outline (how the pieces satisfy the spec)
 
 1. **`backend/k8s.Backend`** holds node-side config only: `Namespace`,
-   `Image` (default `alpine:3.22` — CA-trusted, research D6), `HostAlias`
-   (loopback rewrite target), `ServeAddr` (artifact listener bind), client
-   as `kubernetes.Interface` (the fake-injection seam), kubeconfig/context
-   resolution in the CLI. `Start`:
-   - refuses a non-ELF artifact before any cluster call (FR-009; research
-     spike B's measured failure mode);
-   - stages the artifact bytes under the pod name, computes sha256, serves
-     both from the per-run listener (research D2);
+   `Registry` (push/pull target for per-run artifact images), `BaseImage`
+   (default `alpine:3.22` — CA-trusted, research D6), `HostAlias` (loopback
+   rewrite target), client as `kubernetes.Interface` (the fake-injection
+   seam), kubeconfig/context resolution in the CLI. `Start`:
+   - refuses a non-ELF artifact before any cluster or registry call
+     (FR-009; research spike B's measured failure mode);
+   - assembles the per-run OCI image — the artifact as a layer on
+     `BaseImage`, placed at `/workload`, entrypoint `/workload` — and
+     pushes it to `Registry` tagged with the work-item id, keeping the
+     returned digest (research D2, go-containerregistry);
    - creates the Secret (`nats.creds` from the minted credential — never
-     touching host disk, research D3), then the pod: `restartPolicy: Never`,
-     grace = stop grace, `emptyDir` at `/scratch` as workdir, Secret
-     mounted read-only at `/creds`, generic-image command
-     `fetch → sha256sum -c → chmod +x → exec "$@"` with `spec.Args`
-     appended, env = native contract with creds path and rewritten servers
-     (`backend/natsurl`);
+     touching host disk, research D3), then the pod: single container
+     running the digest-pinned per-run image, `command`
+     `["/workload", spec.Args…]`, `restartPolicy: Never`, grace = stop
+     grace, `emptyDir` at `/scratch` as workdir, Secret mounted read-only
+     at `/creds`, env = native contract with creds path and rewritten
+     servers (`backend/natsurl`);
    - names pod + Secret `soulrealm-<workitem-id>` (RFC 1123-sanitized) with
      the `app.kubernetes.io/managed-by: soulrealm` label (research D5);
    - starts the supervision goroutine (watch on the pod name, capture
      termination state on every update — research D4); failure anywhere →
-     same cleanup-and-error shape as native (nothing left behind).
+     same cleanup-and-error shape as native (nothing left on the cluster).
 2. **`handle.Wait`** blocks on the supervision result: terminal phase or
    Deleted event → map exit (`Code` faithful; Signal inferred 128+n; no
    state observed → `Code: -1`) → reap (delete pod grace-0 idempotently,
-   delete Secret, remove staged artifact, close listener) → return status.
-   Idempotent via `sync.Once`, the seam's convention.
+   delete Secret) → return status. Idempotent via `sync.Once`, the seam's
+   convention.
 3. **`handle.Stop`** deletes the pod with `gracePeriodSeconds` = min(stop
    grace, ctx remaining) — TERM at delete, KILL after grace (measured);
    the supervision watch picks up the terminal state before the object
@@ -182,16 +195,18 @@ hermetic.
    values still fail before any op is published. `SOULREALM_K8S_*` env
    config maps onto the Backend fields; kubeconfig context resolution via
    client-go's standard loading rules.
-5. **E2E** (SC-001…SC-005): re-run the M1.1/M1.2 scenario bodies with the
-   k8s backend and linux-built artifacts (native control arm asserting
-   byte-identical declarations); crash workload asserting `work.abandon` +
-   label-sweep empty; the scope probe from research Bar 4 run against the
-   suite's operator-mode in-process NATS bound so pods can reach it (host
-   alias), asserting in-scope allowed / out-of-scope denied from inside the
-   pod; every scenario ends with the zero-leftovers sweep.
+5. **E2E** (SC-001…SC-005): against kind plus a local OCI registry (the
+   kind-with-registry pattern — the real assemble → push → kubelet-pull
+   path): re-run the M1.1/M1.2 scenario bodies with the k8s backend and
+   linux-built artifacts (native control arm asserting byte-identical
+   declarations); crash workload asserting `work.abandon` + label-sweep
+   empty; the scope probe from research Bar 4 run against the suite's
+   operator-mode in-process NATS bound so pods can reach it (host alias),
+   asserting in-scope allowed / out-of-scope denied from inside the pod;
+   every scenario ends with the zero-leftovers sweep.
 
 ## Complexity Tracking
 
-No constitution violations. One deliberate dependency addition (client-go's
-68-module graph) is justified in research D1 against its alternative; no
-table needed.
+No constitution violations. Two deliberate dependency additions — client-go
+(68-module graph) and go-containerregistry — are justified in research
+D1/D2 against their alternatives; no table needed.

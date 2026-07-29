@@ -9,6 +9,14 @@
 pre-registered bars measured PASS, episode
 [0008](../../hq/04-JOURNEY/0008-kubernetes-backend.md)).
 
+> **Open amendment (recorded here, propagated on landing):** design 0002 §3
+> listed the artifact channel `[O]` as "node-side HTTP vs the soulstream
+> object store over `nats://`". The maintainer decided a third shape during
+> planning: an **OCI-registry interface** — the node packages the declared
+> artifact as a per-run OCI image on a CA-trusted base and any OCI registry
+> carries it to the cluster (plan research D2). Design 0002 §3/§6 are
+> amended openly when this feature lands.
+
 Soulrealm runs the **same agent and tool workloads from M1.1/M1.2 as pods on
 a Kubernetes cluster** — one pod per workload, supervised by the runner —
 while the declarations stay byte-identical and the lifecycle stays legible as
@@ -77,8 +85,8 @@ backend, run the caller agent, assert `"hi"` → `"HI"`; stop the tool, assert
    Kubernetes backend, **When** the caller agent discovers it by name and
    sends `"hi"`, **Then** the agent receives `"HI"`.
 2. **Given** the running pod-hosted tool, **When** soulrealm stops it,
-   **Then** `work.done` appears on the topic and the pod, the delivered
-   credential, and any staged artifact are all gone.
+   **Then** `work.done` appears on the topic and the pod and the delivered
+   credential are gone from the cluster.
 
 ---
 
@@ -87,8 +95,8 @@ backend, run the caller agent, assert `"hi"` → `"HI"`; stop the tool, assert
 A workload that crashes inside its pod, never becomes ready, or ignores a
 stop request is handled exactly as under the native and sandbox backends:
 the run ends in `work.abandon` with the exit legible, stop escalates from a
-polite request to forcible termination, and nothing created for the run —
-pod, delivered credential, staged artifact — outlives the workload. The
+polite request to forcible termination, and nothing created for the run on
+the cluster — pod, delivered credential — outlives the workload. The
 cluster is never allowed to quietly restart or resurrect a workload the
 runner believes is dead.
 
@@ -98,14 +106,14 @@ its own opinions about restarts; a backend that leaks pods or hides failures
 would be worse than no third backend.
 
 **Independent Test**: Run a workload that exits nonzero inside its pod;
-assert `work.abandon` and that no pod, credential, or staged artifact
-remains afterwards.
+assert `work.abandon` and that no pod or delivered credential remains
+afterwards.
 
 **Acceptance Scenarios**:
 
 1. **Given** a workload that exits nonzero inside its pod, **When** it dies,
-   **Then** `work.abandon` appears with the failure legible, and the pod,
-   delivered credential, and staged artifact are reaped.
+   **Then** `work.abandon` appears with the failure legible, and the pod
+   and delivered credential are reaped.
 2. **Given** a pod-hosted workload that ignores termination, **When**
    soulrealm stops it and the grace period expires, **Then** the workload is
    forcibly terminated and the lifecycle still closes on the topic.
@@ -188,8 +196,8 @@ out-of-scope action is denied by the server.
   topic, emitted by the runner; the backend publishes no ops and owns no
   control channel (constitutions I and V).
 - **FR-006**: Ending a pod-hosted workload — clean exit, stop, or crash —
-  MUST reap everything the launch created: the pod, the delivered
-  credential, and any staged artifact; nothing about the run outlives it.
+  MUST reap everything the launch created on the cluster: the pod and the
+  delivered credential; nothing about the run outlives it there.
 - **FR-007**: Both reference workloads — the M1.1 agent and the M1.2
   tool-plus-caller — MUST run under the Kubernetes backend with their
   declarations byte-identical to the native runs.
@@ -220,11 +228,13 @@ out-of-scope action is denied by the server.
 - **Delivered credential** — the minted persona-scoped credential as it
   travels to the pod: confidential to the workload, lifetime bounded by the
   workload's, removed at reap time.
-- **Generic runner image** — the node-configured container image every
-  workload pod uses; able to fetch-and-execute a provisioned artifact and to
-  verify TLS toward the realm transport; never named in a declaration.
-- **Staged artifact** — the per-run copy of the workload's artifact placed
-  where the pod can fetch it; provisioned node-side, reaped with the run.
+- **Base image** — the node-configured, CA-trusted image the provisioned
+  artifact is layered onto; able to verify TLS toward the realm transport;
+  never named in a declaration.
+- **Provisioned artifact** — the per-run packaging of the workload's
+  artifact into the form the cluster can run (layered on the base image,
+  content-addressed); provisioned node-side; what carries it (the
+  operator's registry) is node infrastructure under operator retention.
 - **Backend selection** — node-side runner configuration naming which
   backend launches workloads; the only place isolation is chosen.
 
@@ -241,7 +251,7 @@ out-of-scope action is denied by the server.
   `"HI"`; stop yields `work.done`.
 - **SC-003**: A workload crash inside its pod yields `work.abandon` with the
   exit legible; after every end of life (done or abandon), zero workload
-  pods, delivered credentials, or staged artifacts remain.
+  pods or delivered credentials remain on the cluster.
 - **SC-004**: A scope-probe workload run inside a pod against an enforcing
   realm succeeds in-scope and is denied out-of-scope by the server, with its
   credential delivered confidentially and gone after reap.
@@ -260,13 +270,15 @@ out-of-scope action is denied by the server.
 - **Artifact resolution is node-side provisioning, not declaration content**
   (the M1.3 precedent): the declaration references the artifact; providing
   content the pod's platform can execute is the node's job. The *channel*
-  by which staged artifact bytes reach the pod (served node-side vs the
-  realm's own object store) is a design-0002 `[O]` decided in the plan
-  phase; the fetch-then-execute shape inside a generic image is fixed by the
-  research.
-- **The cluster-client internal** (a client library vs supervising the
-  cluster's own CLI, the M1.3 pattern) is a design-0002 `[O]` decided in the
-  plan phase; the seam is indifferent.
+  was a design-0002 `[O]`, decided in the plan phase by the maintainer: an
+  **OCI-registry interface** — the node packages the artifact onto the
+  CA-trusted base and any OCI registry carries it (see the open-amendment
+  note above and plan research D2); the registry, like the cluster, is
+  operator-provided node infrastructure.
+- **The cluster-client internal** was a design-0002 `[O]`, decided in the
+  plan phase: the official cluster client library, wrapped entirely inside
+  soulrealm's own backend package so nothing above the seam sees cluster
+  types (plan research D1); the seam is indifferent.
 - **Credential-at-rest exposure inside the cluster is a named
   consideration**, bounded by the credential's short mint lifetime;
   encrypting the cluster's secret store at rest is the operator's cluster

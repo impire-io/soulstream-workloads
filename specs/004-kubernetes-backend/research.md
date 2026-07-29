@@ -39,40 +39,65 @@ contract, extra prerequisite, unmeasured); a separate Go module to quarantine
 the dependency (module complexity for no functional gain; reconsider only if
 the graph ever bites downstream consumers).
 
-## D2 — Artifact channel: node-staged ephemeral HTTP, digest-verified
+## D2 — Artifact channel: per-run OCI image on a CA-trusted base, via the operator's registry
 
-**Decision**: The backend stages the artifact bytes per run and serves them
-from a node-side ephemeral HTTP listener; the pod's generic image fetches the
-per-run URL, **verifies a sha256 digest computed node-side**, marks it
-executable, and execs it. The staged copy and listener are reaped with the
-run. The soulstream object store over a `nats://` artifact scheme is
-deferred to the artifact-registry milestone.
+**Decision** (maintainer decision, 2026-07-29 — an honest reversal of this
+plan's first draft, which proposed a node-staged HTTP listener): the backend
+packages the resolved artifact bytes as a **per-run OCI image layered onto
+the CA-trusted base image**, pushes it **digest-pinned** to an
+**operator-configured OCI registry** (node-side config), and the pod runs
+that image as its single container with the artifact as the entrypoint.
+Assembly and push use `github.com/google/go-containerregistry` (pure Go, no
+builder daemon). The kubelet pulls it exactly as it pulls any image —
+authenticated, digest-verified, cached.
 
 **Rationale**:
-- The zero-diff criterion (SC-001/002) structurally forces this: the
-  M1.1/M1.2 declarations say `file://`, and they must run byte-identical. Any
-  channel is therefore *node-internal transport* for bytes the node already
-  resolved — exactly M1.3's stable-declared-path / per-run-content
-  convention, extended across a network hop. Fetch-then-exec by a generic
-  image is the spike-proven mechanism **[measured, spikes B/C]**.
-- An object-store channel today has a bootstrap problem: fetching from the
-  object store requires a NATS client *inside* the pod before the workload
-  starts — a soulrealm-owned fetch helper that is itself an artifact needing
-  distribution. Plain HTTP needs only what stock minimal images already
-  carry **[measured: busybox `wget` sufficed]**.
-- The digest check is the integrity guard for crossing the pod network in
-  clear: the backend computes sha256 at staging; the fetch step verifies
-  before exec (stock `sha256sum -c`), so a corrupted or tampered transfer
-  fails legibly pre-exec instead of executing wrong bytes
-  [mechanism-argument].
+- The registry is the *standard* artifact interface of the Kubernetes world
+  — every org running a cluster runs one, which is this feature's adoption
+  argument applied to artifacts. The first draft's HTTP listener was
+  hand-rolled serving + hand-rolled integrity + hand-rolled lifetime; OCI
+  gives content addressing, auth, and caching as the native interface, and
+  works against *any* OCI registry [mechanism-argument].
+- The in-pod fetch machinery disappears entirely: no shell script, no
+  `wget`, no digest check to write — the container command *is* the
+  artifact, and integrity is the image digest enforced by the kubelet.
+- The zero-diff criterion (SC-001/002) holds: declarations stay `file://`;
+  packaging is node-side provisioning (M1.3's stable-declared-path /
+  per-run-content convention), and the image reference exists only in the
+  pod spec the node writes.
+- The per-run image inherits the base's CA trust store, preserving the
+  measured TLS requirement (spike D) with no extra step.
 
-**Alternatives considered**: soulstream object store over `nats://` (the
-eventual shape per design 0001 §6 — blocked on new declaration vocabulary,
-which the zero-diff bar forbids this milestone, and on the in-pod fetcher
-bootstrap; revisit at the artifact-registry milestone); per-workload OCI
-images (build+registry infrastructure, slow, and the image would leak into
-observable pod spec); embedding the artifact in the Secret/ConfigMap (etcd
-object cap ~1 MiB; the reference binaries alone are ~2.4 MB **[measured]**).
+**Alternatives considered**: node-staged HTTP + in-pod digest script (first
+draft — the underlying fetch-then-exec mechanism is spike-validated
+**[measured, spikes B/C]**, but it is a bespoke interface; rejected by the
+maintainer in favor of the standard one); soulstream object store over
+`nats://` (the eventual *declared-addressing* question per design 0001 §6 —
+still deferred: it needs new declaration vocabulary, which the zero-diff bar
+forbids this milestone, and an in-pod fetcher with a bootstrap problem);
+init-container copy from an artifact-only image (portable, keeps one shared
+runner image, but two containers per pod for no functional gain once the
+base is CA-trusted); OCI **image-volume** mounts (cleanest separation;
+requires newer Kubernetes than "the clusters orgs already have" — revisit
+when the feature is GA everywhere); per-workload Dockerfile builds (needs a
+builder daemon; go-containerregistry assembles layers without one).
+
+**Consequences**:
+- New dependency: `github.com/google/go-containerregistry` (pure Go).
+- Node config gains `Registry` (required for this backend) and `BaseImage`
+  (default `alpine:3.22`, D6). Push credentials use the operator's standard
+  docker-config mechanism; pull credentials are the namespace/service-
+  account's image pull secrets — operator concerns, like the cluster
+  credentials themselves.
+- Per-run references are tagged with the work-item id and pinned by digest;
+  identical artifact bytes dedupe by content address. Registry retention is
+  operator policy: the registry holds transport cache derived from the
+  declared artifact, not a soulrealm store of record (constitution I — the
+  003 image-cache precedent). The cluster-side zero-leftovers bar
+  (pods/Secrets) is unchanged.
+- The spikes validated fetch-then-exec, not image assembly; assembly+push
+  is standard-library ground [mechanism-argument] and is proven for real in
+  the e2e against a local registry (D7).
 
 ## D3 — Credential delivery: Secret mounted read-only; no creds bytes on host disk
 
@@ -134,37 +159,41 @@ opinions — exactly what FR-008 must hold off).
 
 **Decision**: Pod and Secret are both named `soulrealm-<workitem-id>`
 (scratch-dir base, msb's naming convention) sanitized to RFC 1123 lowercase,
-and labeled `app.kubernetes.io/managed-by: soulrealm`. The e2e
-zero-leftovers sweep lists by that label and asserts empty; `Wait`'s reap
-deletes pod + Secret + staged artifact and stops the serve listener.
+and labeled `app.kubernetes.io/managed-by: soulrealm`; the per-run image is
+tagged with the same id. The e2e zero-leftovers sweep lists by that label
+and asserts empty; `Wait`'s reap deletes pod + Secret (registry retention
+is operator policy, D2).
 
-**Rationale**: one grep-able id from topic op → pod → Secret → staged file
-(the 003-D4 property, kept). The label makes "zero workload pods remain"
-assertable without name heuristics. RFC 1123 sanitization is forced by the
-API **[measured: uppercase/underscore ids are rejected]**.
+**Rationale**: one grep-able id from topic op → pod → Secret → per-run
+image tag (the 003-D4 property, kept). The label makes "zero workload pods
+remain" assertable without name heuristics. RFC 1123 sanitization is forced
+by the API **[measured: uppercase/underscore ids are rejected]**.
 
 **Alternatives considered**: generateName + label-only linkage (loses the
 op↔pod grep); a dedicated namespace per run (heavyweight; namespace
 lifecycle is the operator's concern, not per-workload machinery).
 
-## D6 — Generic image: CA-trusted minimal default, node-side override
+## D6 — Base image: CA-trusted minimal default, node-side override
 
-**Decision**: Default image `alpine:3.22`; node-side override
-(`SOULREALM_K8S_IMAGE`). The image contract is: a POSIX shell, `wget`,
-`sha256sum`, and a CA trust store.
+**Decision**: The per-run artifact image is layered onto base `alpine:3.22`
+by default; node-side override `SOULREALM_K8S_BASE_IMAGE`. With D2's shape
+the base-image contract shrinks to one requirement: **a CA trust store**.
+The artifact is a static binary running as the container entrypoint — no
+shell, no fetch tooling needed.
 
 **Rationale** **[measured, spike D]**: busybox carries no CA bundle — Go's
 cert pool comes up empty and a TLS realm (NGS) is unreachable; alpine ships
 `ca-certificates-bundle` and the Bar 4 probe connected over TLS end-to-end.
 A TLS-capable realm transport is the expected production posture, so the
-default must carry trust; image choice stays invisible to declarations
+default base must carry trust; the base stays invisible to declarations
 (constitution III).
 
-**Alternatives considered**: busybox (fails TLS realms — measured);
-distroless (no shell — the fetch-and-exec step needs one until an in-pod
-fetcher exists, see D2); a soulrealm-built image (becomes an artifact-
-distribution problem of its own; rejected for the same reason as D2's
-fetcher).
+**Alternatives considered**: busybox (fails TLS realms — measured); a
+minimal scratch+CA-certs base (smallest possible; viable refinement, but it
+is a soulrealm-distributed base — another distribution problem — while
+alpine is boring, cached everywhere, and validated end-to-end in spike D);
+distroless (workable now that no shell is needed, but unmeasured here for
+no gain over alpine).
 
 ## D7 — Hermetic testing: fake clientset default, `make test-k8s` for the real cluster
 
@@ -173,7 +202,9 @@ against `kubernetes/fake` (typed fake clientset with watch support),
 asserting pod/Secret specs, watch handling, grace derivation, exit mapping,
 and reap idempotency — no cluster, no network. The real-cluster proof lives
 in `integration/k8s_e2e_test.go` behind build tag `k8s_e2e`, driven by
-`make test-k8s` against a local kind cluster (operator-provided, like `msb`
+`make test-k8s` against a local kind cluster **plus a local OCI registry**
+(the documented kind-with-registry pattern), so the real assemble → push →
+kubelet-pull path is what the e2e exercises (operator-provided, like `msb`
 for M1.3). The M2.1 exit gate is `make check && make test-k8s` green on the
 operator's machine.
 

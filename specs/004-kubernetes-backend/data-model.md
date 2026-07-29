@@ -12,11 +12,15 @@ bounded lifetimes; everything durable is already ops on the topic.
 | Field | Meaning | Default | Source |
 |---|---|---|---|
 | `Namespace` | cluster namespace all workload pods/Secrets live in | `default` | `SOULREALM_K8S_NAMESPACE` |
-| `Image` | generic runner image (shell + wget + sha256sum + CA trust) | `alpine:3.22` | `SOULREALM_K8S_IMAGE` |
+| `Registry` | OCI registry the node pushes per-run artifact images to and the cluster pulls from | — (required) | `SOULREALM_K8S_REGISTRY` |
+| `BaseImage` | CA-trusted base the artifact is layered onto | `alpine:3.22` | `SOULREALM_K8S_BASE_IMAGE` |
 | `HostAlias` | address at which pods reach this node; loopback NATS URLs rewritten to it | — (required when the realm's NATS is loopback) | `SOULREALM_K8S_HOST_ALIAS` |
-| `ServeAddr` | bind address for the per-run artifact listener | node-chosen ephemeral port | `SOULREALM_K8S_SERVE_ADDR` |
 | kubeconfig/context | cluster access | client-go standard loading rules | `KUBECONFIG` / `SOULREALM_K8S_CONTEXT` |
 | client | `kubernetes.Interface` | real clientset | fake in unit tests |
+
+Registry push credentials use the operator's standard docker-config
+mechanism; the kubelet's pulls use the namespace/service-account image pull
+secrets — both operator concerns, like cluster credentials.
 
 Invariant: none of these may appear in, or be derivable from, a declaration
 (constitution III, FR-001).
@@ -47,13 +51,15 @@ Same name as the pod; single key `nats.creds` (the minted JWT+seed formatted
 as a creds file). Created before the pod, mounted read-only, deleted at
 reap. Never written to host disk. Lifetime ⊆ workload lifetime ⊆ mint TTL.
 
-### Staged artifact
+### Per-run artifact image
 
-Per-run copy of the resolved artifact bytes: staged under the pod name,
-sha256 computed at staging, served by the per-run listener, fetched and
-digest-verified in-pod before exec, removed at reap (file + listener).
-Precondition: bytes begin with the ELF magic — verified node-side before
-any cluster object is created.
+The resolved artifact bytes as an OCI image: one layer on `BaseImage`
+placing the binary at `/workload` (the entrypoint), pushed to `Registry`
+tagged with the work-item id, referenced **digest-pinned** in the pod spec
+(integrity enforced by the kubelet). Identical artifact bytes dedupe by
+content address. Registry retention is operator policy — transport cache,
+not a store of record. Precondition: bytes begin with the ELF magic —
+verified node-side before any registry or cluster call.
 
 ### Exit status mapping
 
@@ -73,9 +79,12 @@ else → `work.abandon`; `Stop` → `work.done` regardless (intentional end).
 ```
 Start ──▶ supervising ──(terminal observed)──▶ reaping ──▶ status delivered
    │                                                   (Wait returns; idempotent)
-   └─(any Start-phase failure)──▶ rollback: delete Secret/staged bytes; error; nothing behind
+   └─(any Start-phase failure)──▶ rollback: delete Secret/pod if created; error;
+                                  nothing left on the cluster
 Stop ──▶ delete(grace=min(stopGrace, ctx remaining)) ──▶ supervision observes terminal
 ```
 
-Reap = delete pod (grace 0, idempotent) + delete Secret + remove staged
-artifact + close listener. Runs exactly once (`sync.Once`), on every path.
+Reap = delete pod (grace 0, idempotent) + delete Secret. Runs exactly once
+(`sync.Once`), on every path. The per-run image stays in the registry under
+operator retention (transport cache; a pushed image from a failed start is
+likewise retention's concern, recorded honestly).

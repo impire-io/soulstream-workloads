@@ -4,8 +4,10 @@
 
 ## Prerequisites (operator-provided, like `msb` for M1.3)
 
-- A reachable Kubernetes cluster + kubeconfig context. Dev machine:
-  `brew install kind && kind create cluster --name soulrealm-dev`.
+- A reachable Kubernetes cluster + kubeconfig context, and an OCI registry
+  the node can push to and the cluster can pull from. Dev machine: the
+  documented kind-with-registry pattern (`kind create cluster` + a local
+  `registry:2` container wired into the kind network).
 - A NATS server the *pods* can reach. Dev machine: bind it to `0.0.0.0` and
   note the address pods see the host at (Docker Desktop:
   `192.168.65.254`) — that address is the host alias below. A routable
@@ -22,10 +24,13 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o /tmp/agent-echo ./cmd/agent-ec
 # 2. Point the declaration at it (byte-identical shape to M1.1 — no backend field)
 #    artifact: file:///tmp/agent-echo
 
-# 3. Select the backend node-side and run
+# 3. Select the backend node-side and run — soulrealm assembles the per-run
+#    OCI image (artifact on the CA-trusted base), pushes it digest-pinned,
+#    and the pod runs it
 SOULREALM_BACKEND=k8s \
 SOULREALM_K8S_NAMESPACE=default \
-SOULREALM_K8S_IMAGE=alpine:3.22 \
+SOULREALM_K8S_REGISTRY=localhost:5001/soulrealm \
+SOULREALM_K8S_BASE_IMAGE=alpine:3.22 \
 SOULREALM_K8S_HOST_ALIAS=192.168.65.254 \
   soulrealm run --declaration agent.json
 ```
