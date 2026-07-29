@@ -46,8 +46,8 @@ spec assumption)
 **Performance Goals**: pod launch-to-ready seconds-scale (~0.5 s warm,
 ~3.5 s cold pull — measured); e2e readiness/discovery windows ≥ 60 s
 **Constraints**: `make test` must pass with no cluster present;
-declarations byte-identical across backends (SC-001/002); zero pods,
-Secrets, or staged artifacts left after any end-of-life (SC-003); cluster
+declarations byte-identical across backends (SC-001/002); zero pods or
+Secrets left on the cluster after any end-of-life (SC-003); cluster
 restart machinery held off (`restartPolicy: Never`, FR-008)
 **Scale/Scope**: single node, one configured cluster+namespace, two
 reference workloads, one new backend package + a shared URL-rewrite helper

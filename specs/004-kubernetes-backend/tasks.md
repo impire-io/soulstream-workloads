@@ -25,9 +25,11 @@ parity), US4 (scoped credential holds from inside the pod).
 - [ ] T002 [P] Create `scripts/kind-registry.sh` (`up`/`down`): kind cluster
       `soulrealm-k8s` + local `registry:2` container wired per the
       documented kind-with-registry pattern (containerd registry config,
-      shared network, `localhost:5001` on the host); referenced by
-      quickstart.md and expected by `make test-k8s` — the operator
-      prerequisite in script form (research D7)
+      shared network, `localhost:5001` on the host); the script MUST ensure
+      the push reference and the in-cluster pull reference are the same
+      name (the name-parity gotcha the documented pattern exists to solve);
+      referenced by quickstart.md and expected by `make test-k8s` — the
+      operator prerequisite in script form (research D7, analysis C1)
 
 ---
 
@@ -168,10 +170,11 @@ in-scope and denies out-of-scope actions — from inside the pod (SC-004).
 **Independent Test**: `TestK8sScopeEnforcedFromPod` green under
 `make test-k8s`.
 
-- [ ] T015 [US4] Extend `internal/natstest.StartOperator` with a
-      bind-address option (default stays `127.0.0.1`; existing callers
-      unchanged) so the operator-mode server is reachable from pods via
-      the host alias
+- [ ] T015 [US4] Extend `internal/natstest` with bind-address options on
+      **both** `StartJetStream` and `StartOperator` (defaults stay
+      `127.0.0.1`; existing callers unchanged) so e2e servers are reachable
+      from pods via the host alias — T009 needs the JetStream half, so do
+      this before US1's e2e despite its US4 home (analysis I1)
 - [ ] T016 [US4] E2E `TestK8sScopeEnforcedFromPod` in
       `integration/k8s_e2e_test.go`: operator-mode in-process NATS bound
       `0.0.0.0`; inline-built probe workload (the research Bar 4 probe
@@ -220,7 +223,7 @@ bookkeeping.
   only needed before the first e2e run (T009), not before unit work.
 - **US1 (T007–T010)**: the MVP. T007 needs T004 (+T005 for the image ref,
   T003 for the rewrite); T008 parallel with T009 once T007 lands; T009
-  needs T002 + T005; T010 with T009.
+  needs T002 + T005 + T015's `StartJetStream` bind option; T010 with T009.
 - **US2 (T011)**: needs T007; independent of US1's e2e tests.
 - **US3 (T012–T014)**: T012/T014 need T007; T013 needs T006+T007; all
   independent of US1/US2 e2e.
