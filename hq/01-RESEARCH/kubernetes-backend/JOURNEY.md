@@ -177,3 +177,54 @@ single-run.
 maintainer's non-loopback NATS environment (needs an operator-mode/scoped
 setup so enforcement is real). When Bar 4 runs, the topic is ready for
 `/research-graduate kubernetes-backend --to design`.
+
+## 2026-07-29 — spike D: Bar 4 — scoped credential over a real network — PASS
+
+**Environment:** the maintainer designated the `personal` NATS context —
+Synadia NGS (`tls://connect.ngs.global`), operator-mode by construction, so
+user-JWT permissions are enforced for real (the spike-C caveat closes). The
+account signing seed stays on disk (`~/.synadia/personal_sk.seed`), read by
+the minter at runtime and never logged — the same posture the repo's minter
+documents for its seed.
+
+**Protocol:** the SC-003 scope probe recast as a *workload* honouring the
+`SOULREALM_*` env contract: connect with the minted credential, publish
+in-scope on `SOULREALM.SVC.probe-ping` (transient namespace — allowed for
+the agent role and never captured by any soulstream stream, so the probe
+leaves zero op-log footprint on the maintainer's account), then publish
+out-of-scope and require the server's async permissions violation. Exit 0
+only if both hold. A native control arm runs the identical probe first, so
+a failure would separate credential problems from pod problems. Pod arm:
+credential as a Secret-mounted file, `alpine:3.22` as the generic image,
+NGS reached through the pod's ordinary egress (DNS + TLS — no host alias,
+no rewrite: `rewriteServers` passes the non-loopback URL through untouched,
+the pass-through branch exercised for real).
+
+**Result (single run, 2026-07-29) — [measured]:** PASS in 11.5s. Native
+control clean; pod probe exit 0 — in-scope allowed, out-of-scope denied
+from inside the pod; zero pods and secrets left.
+
+**Findings:**
+
+- The full Bar 4 chain holds: mint with a real account signing key →
+  Secret delivery → TLS connect from a pod to a public NATS → scope
+  enforced server-side [measured].
+- **The generic image must carry a CA trust store when the realm's NATS is
+  TLS** — busybox has none (Go's cert pool comes up empty), alpine ships
+  `ca-certificates-bundle`. Node-side image choice, invisible to the
+  declaration — constitution III intact [measured: busybox lacks the
+  bundle; alpine run verified end-to-end].
+- Contrast with the roadmap's named msb limitation (non-loopback NATS
+  needs the Fleet-era `public` net profile): the Kubernetes backend
+  reaches a public NATS through ordinary pod egress with no special
+  networking at all — on this axis Kubernetes is *ahead* of the microVM
+  backend [measured].
+
+**Standing: all four pre-registered bars are measured PASS.** The topic is
+ready for `/research-graduate kubernetes-backend --to design`. Design
+questions to settle at graduation, carried from the spikes: the artifact
+channel (node-side HTTP vs soulstream object store over `nats://`),
+node-arch-aware artifact resolution for heterogeneous clusters, the
+Signal-inference (128+n) named limitation, Secret-at-rest exposure in
+etcd, and the client dependency question (client-go's 68-module graph vs
+supervising `kubectl` in the msb style).
