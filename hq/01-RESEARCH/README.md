@@ -42,7 +42,11 @@ the work produces.
 
 ## Active topics
 
-*None open.* The `nex-runtime-substrate` topic graduated to design on
-2026-07-22 (journey [episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)
+| Topic | Question | Started |
+| --- | --- | --- |
+| [`kubernetes-backend/`](kubernetes-backend/README.md) | Can Kubernetes serve as a pure backend behind the constitution III seam — and what does it force on the artifact and credential seams? | 2026-07-29 |
+
+The `nex-runtime-substrate` topic graduated to design on 2026-07-22 (journey
+[episode 0002](../04-JOURNEY/0002-the-substrate-decision.md)
 → design [`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md));
 its folder was removed, with the full trail in git history.
