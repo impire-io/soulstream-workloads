@@ -42,7 +42,11 @@ the work produces.
 
 ## Active topics
 
-*None open.* Graduated so far: `nex-runtime-substrate` (2026-07-22, journey
+| Topic | Started | Question |
+|---|---|---|
+| [`fleet/`](fleet/README.md) | 2026-07-29 | Can the op-log alone place work across heterogeneous nodes and survive their deaths? |
+
+Graduated so far: `nex-runtime-substrate` (2026-07-22, journey
 [episode 0002](../04-JOURNEY/0002-the-substrate-decision.md) → design
 [`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md)) and
 `kubernetes-backend` (2026-07-29, journey [episode
