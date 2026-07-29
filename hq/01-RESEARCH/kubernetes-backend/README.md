@@ -77,6 +77,48 @@ pattern — the default gate stays hermetic.
 
 ## Verdict
 
-<Empty until graduation. Filled by /research-graduate: PASS/FAIL per bar with
-the honest findings, each load-bearing claim tagged [measured] /
-[mechanism-argument] / [judgment].>
+**All four pre-registered bars: PASS.** Four spikes (A–D, 2026-07-29; full
+protocols and raw readings in `JOURNEY.md`), run on a throwaway kind cluster
+(`soulrealm-research`) with Bar 4 against Synadia NGS. Single runs each.
+
+- **Bar 1 — Contract invariance: PASS [measured].** A ~290-line prototype
+  backend behind the unchanged `backend.Backend`/`Handle` interface, driven
+  by the real runner/minter/declaration (imported via `replace`, working
+  tree byte-clean after the runs). ONE declaration value marshalled
+  byte-identical across the native control run and the pod run; agent flow,
+  tool flow, and crash flow all green. No interface amendment was needed.
+- **Bar 2 — Artifact without leakage: PASS [measured].** A stock generic
+  image (`busybox`/`alpine`) fetched a host-built static binary at pod start
+  and exec'd it — no per-workload image, no image reference or
+  Kubernetes-specific field anywhere. M1.3's stable-declared-path /
+  provisioned-content convention extended unchanged. Channel used: node-side
+  HTTP (cheapest faithful mechanism); object store over `nats://` is the
+  design-level candidate [judgment]. Platform mismatch fails unreadably
+  in-pod (kernel refuses Mach-O, `sh` interprets it as script) [measured] —
+  so resolution verifies ELF node-side, pre-launch.
+- **Bar 3 — Supervision parity, nothing left behind: PASS [measured].**
+  `restartPolicy: Never`; normal exit → `work.done`, crash → `work.abandon`,
+  `Stop` → delete-with-grace → `work.done`, driven by the real runner. Exit
+  codes map faithfully; Kubernetes never populates the Signal field — a
+  signal death arrives as exitCode 128+n and is inferred, so a literal
+  `exit 137` is indistinguishable from SIGKILL (named limitation). Zero pods
+  and secrets after every end of life.
+- **Bar 4 — Scoped credential over a real network: PASS [measured].** The
+  minter signed with the maintainer's NGS account signing key (read from
+  disk, never logged); the credential reached the pod as a Secret-mounted
+  file; the workload connected to `tls://connect.ngs.global` through
+  ordinary pod egress; in-scope publish allowed, out-of-scope denied by the
+  operator-mode server — from inside the pod. New finding: a TLS realm
+  requires a CA trust store in the generic image (busybox has none; alpine
+  ships one) [measured].
+
+One expectation inverted rather than refuted: on the non-loopback-NATS axis
+Kubernetes is *ahead* of the microVM backend (msb needs the Fleet-era
+`public` net profile; a pod needs nothing special) [measured]. The
+adversarial note held: pods are weaker isolation than microVMs — the case
+for this backend is adoption, not isolation strength [mechanism-argument].
+
+Carried to the design: artifact channel ([O]), node-arch-aware resolution
+for heterogeneous clusters ([O]), the 128+n signal inference (named
+limitation), Secret-at-rest exposure in etcd (named consideration), and
+client-go's 68-module graph vs supervising `kubectl` msb-style ([O]).
