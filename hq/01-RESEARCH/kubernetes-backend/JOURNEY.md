@@ -62,3 +62,56 @@ Zero pods remained in the namespace after all three ends of life.
 looks reachable. Bar 3 itself still requires the full op-sequence parity run
 (crash → `abandon`) with the real runner, which is the Bar 1 integration
 spike's job.
+
+## 2026-07-29 — spike B: artifact into the pod (Bar 2 mechanism)
+
+**Hypothesis:** a *generic* image can fetch a host-built artifact at pod
+start and exec it — no per-workload image build, no image reference in any
+declaration.
+
+**Protocol:** tiny Go workload cross-compiled twice (linux/arm64 and
+darwin/arm64 — the kind node is aarch64, matching host GOARCH), served from
+the host over HTTP (a stand-in for the object-store channel; pods reach the
+host at Docker Desktop's `192.168.65.254` alias). Two `busybox:1.36` pods:
+`wget && chmod +x && exec` of the linux build (positive) and the darwin
+build (deliberate platform mismatch).
+
+**Results (2026-07-29) — [measured]:**
+
+- Positive: phase `Succeeded`, exit 0, workload printed
+  `os=linux arch=arm64` from inside the pod. Generic-image fetch-and-exec
+  works; no per-workload image was built.
+- Negative: the kernel refuses the Mach-O binary, and busybox `sh` then
+  **falls back to interpreting the binary as a shell script** — pages of
+  garbage `not found` errors, exit 2, phase `Failed`. Platform mismatch
+  fails *late and unreadably* in-pod.
+
+**Findings:**
+
+- The Bar 2 mechanism holds: artifact delivery needs a generic runner image
+  plus a fetch channel, nothing more [measured].
+- Artifact resolution must verify platform *before* launch (ELF magic /
+  GOOS-GOARCH check node-side) so a mismatch is a clean pre-launch error
+  instead of in-pod garbage [mechanism-argument from the measured negative].
+- Precedent already in the repo: M1.3's e2e test keeps the **declared
+  artifact path stable and provisions its content per run** (host build for
+  native, guest build for msb, same `file://` path —
+  `integration/msb_e2e_test.go`). The Kubernetes backend extends node-side
+  provisioning across a network boundary; it does not need new declaration
+  vocabulary [measured — it is in the repo].
+- The kind node arch equals host GOARCH under Docker Desktop, so msb's
+  `GOOS=linux GOARCH=<host> CGO_ENABLED=0` static-build convention serves
+  the kind gate target unchanged. A real org cluster may have nodes of a
+  different arch than the runner host — artifact resolution then becomes
+  node-arch-aware (multi-platform addressing, the shape OCI manifests
+  solve). Named design question for graduation, not a research blocker
+  [judgment].
+- Channel choice (HTTP stand-in vs soulstream object store over `nats://`)
+  is deliberately unresolved here — it interacts with Bar 4's connectivity
+  wiring and is the design-level decision graduation must make.
+
+**Next:** Bar 1 integration spike — a prototype `backend/k8s` in the
+scratchpad wired to the *real* runner, byte-identical M1.1/M1.2
+declarations, against a NATS the pods can reach (a spike server bound to
+`0.0.0.0` reached via the host alias, or the maintainer's environment once
+its coordinates arrive). Bar 4 waits on the maintainer's NATS environment.
