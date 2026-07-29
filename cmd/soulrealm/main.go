@@ -13,8 +13,11 @@ import (
 
 	"github.com/impire-io/soulstream/realm"
 	"github.com/impire-io/soulstream/topic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/impire-io/soulrealm/backend"
+	"github.com/impire-io/soulrealm/backend/k8s"
 	"github.com/impire-io/soulrealm/backend/msb"
 	"github.com/impire-io/soulrealm/backend/native"
 	"github.com/impire-io/soulrealm/declaration"
@@ -105,9 +108,40 @@ func selectBackend(name, msbImage string) (backend.Backend, error) {
 		return native.New(), nil
 	case "msb":
 		return &msb.Backend{Image: msbImage}, nil
+	case "k8s":
+		return k8sBackendFromEnv()
 	default:
-		return nil, fmt.Errorf("SOULREALM_BACKEND %q is not a known backend (native, msb)", name)
+		return nil, fmt.Errorf("SOULREALM_BACKEND %q is not a known backend (native, msb, k8s)", name)
 	}
+}
+
+// k8sBackendFromEnv builds the Kubernetes backend from SOULREALM_K8S_* node
+// configuration. The registry is required (specs/004 FR/T017); config errors
+// fail here, loud, before any op is published. Cluster access resolves via
+// client-go's standard kubeconfig loading rules, with SOULREALM_K8S_CONTEXT
+// selecting a non-default context.
+func k8sBackendFromEnv() (backend.Backend, error) {
+	registry := os.Getenv("SOULREALM_K8S_REGISTRY")
+	if registry == "" {
+		return nil, fmt.Errorf("SOULREALM_K8S_REGISTRY is required for the k8s backend (OCI repository prefix for per-run artifact images)")
+	}
+	rules := clientcmd.NewDefaultClientConfigLoadingRules()
+	overrides := &clientcmd.ConfigOverrides{CurrentContext: os.Getenv("SOULREALM_K8S_CONTEXT")}
+	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("k8s backend: resolve kubeconfig: %w", err)
+	}
+	cs, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("k8s backend: build client: %w", err)
+	}
+	return &k8s.Backend{
+		Client:    cs,
+		Namespace: os.Getenv("SOULREALM_K8S_NAMESPACE"),
+		Registry:  registry,
+		BaseImage: os.Getenv("SOULREALM_K8S_BASE_IMAGE"),
+		HostAlias: os.Getenv("SOULREALM_K8S_HOST_ALIAS"),
+	}, nil
 }
 
 // serversOf returns the realm's NATS server URLs, minted into workload creds so

@@ -24,7 +24,7 @@ type OperatorServer struct {
 // account with a signing key, and a memory resolver that trusts them. A user
 // JWT signed by the account signing key (IssuerAccount = the account) is
 // authenticated and its pub/sub permissions enforced.
-func StartOperator(t *testing.T) OperatorServer {
+func StartOperator(t *testing.T, options ...Option) OperatorServer {
 	t.Helper()
 
 	operator, err := nkeys.CreateOperator()
@@ -74,6 +74,9 @@ func StartOperator(t *testing.T) OperatorServer {
 		TrustedKeys:     []string{opub},
 		AccountResolver: res,
 		SystemAccount:   syspub,
+	}
+	for _, o := range options {
+		o(opts)
 	}
 
 	ns, err := server.NewServer(opts)

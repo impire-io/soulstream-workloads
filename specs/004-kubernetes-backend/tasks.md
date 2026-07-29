@@ -95,7 +95,7 @@ green; unit tests prove spec shape, mapping, and reap hermetically.
       sanitization cases, ELF refusal pre-cluster-call, exit mapping table
       (0 / 3 / 137→`killed` / Deleted-no-state→−1), Stop grace derivation
       from ctx, reap idempotency, start-failure rollback
-- [ ] T009 [US1] E2E `TestK8sLaunchAgentEndToEnd` in
+- [x] T009 [US1] E2E `TestK8sLaunchAgentEndToEnd` in
       `integration/k8s_e2e_test.go` (build tag `k8s_e2e`): the
       launch_test.go scenario with `Backend: k8s` and
       `buildCmdLinux(agent-echo)`; ONE declaration value marshalled and
@@ -103,7 +103,7 @@ green; unit tests prove spec shape, mapping, and reap hermetically.
       zero-diff pattern); suite NATS bound `0.0.0.0` with the host alias so
       the loopback rewrite is exercised for real; artifact pushed to the
       local registry and pulled by kind (SC-001, US1 acceptance 1+2)
-- [ ] T010 [US1] Add `test-k8s` target to `Makefile`
+- [x] T010 [US1] Add `test-k8s` target to `Makefile`
       (`go test -tags k8s_e2e -count=1 ./integration/ -run 'TestK8s'`,
       expects `scripts/kind-registry.sh up` done) and the build-tag header
       in k8s_e2e_test.go
@@ -121,7 +121,7 @@ name, `"hi"`→`"HI"`, stop → `work.done` + cluster-side reaping (SC-002).
 **Independent Test**: `TestK8sAgentCallsToolEndToEnd` green under
 `make test-k8s`.
 
-- [ ] T011 [US2] E2E `TestK8sAgentCallsToolEndToEnd` in
+- [x] T011 [US2] E2E `TestK8sAgentCallsToolEndToEnd` in
       `integration/k8s_e2e_test.go`: tool_test.go scenario with the k8s
       backend and `buildCmdLinux(tool-upper)`; discovery retry window
       ≥ 60 s (research: cold image pull margin); after `Stop`: assert
@@ -143,7 +143,7 @@ cluster outlives any end of life (SC-003).
 `TestK8sOutOfBandDeletion` green under `make test-k8s`; Deleted-event
 handling covered hermetically.
 
-- [ ] T012 [US3] E2E `TestK8sCrashAbandons` in
+- [x] T012 [US3] E2E `TestK8sCrashAbandons` in
       `integration/k8s_e2e_test.go`: workload exiting nonzero inside its
       pod → runner records `work.abandon`; afterwards the label sweep shows
       zero pods/Secrets (SC-003, US3 acceptance 1+3)
@@ -151,7 +151,7 @@ handling covered hermetically.
       fake watch delivers a Deleted event with no termination state ever
       observed → `Wait` returns the uncoded failure (`Code: -1`) and reaps
       — the out-of-band-interference path (US3 edge case, research D4)
-- [ ] T014 [P] [US3] E2E `TestK8sOutOfBandDeletion` in
+- [x] T014 [P] [US3] E2E `TestK8sOutOfBandDeletion` in
       `integration/k8s_e2e_test.go`: delete the running pod via the
       cluster (not the runner) mid-run → the run still closes as
       `work.abandon` and no second copy of the workload ever appears
@@ -170,12 +170,12 @@ in-scope and denies out-of-scope actions — from inside the pod (SC-004).
 **Independent Test**: `TestK8sScopeEnforcedFromPod` green under
 `make test-k8s`.
 
-- [ ] T015 [US4] Extend `internal/natstest` with bind-address options on
+- [x] T015 [US4] Extend `internal/natstest` with bind-address options on
       **both** `StartJetStream` and `StartOperator` (defaults stay
       `127.0.0.1`; existing callers unchanged) so e2e servers are reachable
       from pods via the host alias — T009 needs the JetStream half, so do
       this before US1's e2e despite its US4 home (analysis I1)
-- [ ] T016 [US4] E2E `TestK8sScopeEnforcedFromPod` in
+- [x] T016 [US4] E2E `TestK8sScopeEnforcedFromPod` in
       `integration/k8s_e2e_test.go`: operator-mode in-process NATS bound
       `0.0.0.0`; inline-built probe workload (the research Bar 4 probe
       shape: in-scope publish on its allowed subject succeeds, out-of-scope
@@ -193,7 +193,7 @@ in-scope and denies out-of-scope actions — from inside the pod (SC-004).
 **Purpose**: Node-side selection, docs, the gate, and the landing
 bookkeeping.
 
-- [ ] T017 Wire backend selection into `cmd/soulrealm/main.go`:
+- [x] T017 Wire backend selection into `cmd/soulrealm/main.go`:
       `SOULREALM_BACKEND` = `native` (default) | `msb` | `k8s`; `k8s` reads
       `SOULREALM_K8S_NAMESPACE` / `SOULREALM_K8S_REGISTRY` (required) /
       `SOULREALM_K8S_BASE_IMAGE` / `SOULREALM_K8S_HOST_ALIAS` /
@@ -201,10 +201,10 @@ bookkeeping.
       standard loading rules; unknown backend or missing registry errors
       before any op is published (FR-001); config parsing factored and
       unit-tested
-- [ ] T018 [P] Verify `specs/004-kubernetes-backend/quickstart.md` against
+- [x] T018 [P] Verify `specs/004-kubernetes-backend/quickstart.md` against
       the implementation (commands, env var names, script name); fix any
       drift
-- [ ] T019 Full gate: `make check` hermetic (verify green with no cluster,
+- [x] T019 Full gate: `make check` hermetic (verify green with no cluster,
       no registry, no kubeconfig context present — no hidden dependency)
       and `make test-k8s` (real kind + registry) — both green, nothing
       skipped (SC-005)
