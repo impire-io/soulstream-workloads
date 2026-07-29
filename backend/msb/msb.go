@@ -15,8 +15,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +27,7 @@ import (
 
 	"github.com/impire-io/soulrealm/backend"
 	"github.com/impire-io/soulrealm/backend/native"
+	"github.com/impire-io/soulrealm/backend/natsurl"
 )
 
 // Defaults for the node-side backend configuration. None of these may appear
@@ -165,7 +164,7 @@ func (b *Backend) runArgs(name string, spec backend.LaunchSpec) []string {
 // semantics as the native backend, with values adapted to the guest.
 func guestEnv(spec backend.LaunchSpec, alias string) []string {
 	return []string{
-		native.EnvNatsServers + "=" + strings.Join(rewriteServers(spec.Cred.NatsServers, alias), ","),
+		native.EnvNatsServers + "=" + strings.Join(natsurl.Rewrite(spec.Cred.NatsServers, alias), ","),
 		native.EnvCredsFile + "=" + guestCredsPath,
 		native.EnvRealm + "=" + spec.Realm,
 		native.EnvPersona + "=" + spec.Cred.Persona,
@@ -183,51 +182,9 @@ func hostEnv() []string {
 	}
 }
 
-// rewriteServers maps loopback hosts in NATS URLs to the in-guest host alias.
-// Only loopback is rewritten: from inside the VM, 127.0.0.1 is the guest
-// itself, and the alias is microsandbox's name for the host's loopback. Other
-// hosts pass through untouched (a non-loopback server would additionally need
-// the `public` network profile — a named limitation until Fleet).
-func rewriteServers(servers []string, alias string) []string {
-	out := make([]string, len(servers))
-	for i, s := range servers {
-		out[i] = rewriteServer(s, alias)
-	}
-	return out
-}
-
-func rewriteServer(server, alias string) string {
-	if u, err := url.Parse(server); err == nil && u.Host != "" {
-		if !isLoopback(u.Hostname()) {
-			return server
-		}
-		if p := u.Port(); p != "" {
-			u.Host = alias + ":" + p
-		} else {
-			u.Host = alias
-		}
-		return u.String()
-	}
-	// Bare host[:port] forms.
-	if host, port, err := net.SplitHostPort(server); err == nil {
-		if isLoopback(host) {
-			return net.JoinHostPort(alias, port)
-		}
-		return server
-	}
-	if isLoopback(server) {
-		return alias
-	}
-	return server
-}
-
-func isLoopback(host string) bool {
-	if strings.EqualFold(host, "localhost") {
-		return true
-	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
-}
+// The loopback→alias URL rewrite lives in backend/natsurl (extracted M2.1,
+// shared with the k8s backend); a non-loopback server would additionally
+// need the `public` network profile here — a named limitation until Fleet.
 
 // sandboxName derives the sandbox's name from the scratch dir's base — the
 // work item id — so a topic op, a scratch dir, and a `msb ls` row all name

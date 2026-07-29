@@ -18,11 +18,11 @@ parity), US4 (scoped credential holds from inside the pod).
 
 **Purpose**: Dependencies and the operator-side e2e environment.
 
-- [ ] T001 Add dependencies to `go.mod`: `k8s.io/client-go`, `k8s.io/api`,
+- [x] T001 Add dependencies to `go.mod`: `k8s.io/client-go`, `k8s.io/api`,
       `k8s.io/apimachinery` (v0.36.x) and
       `github.com/google/go-containerregistry`; `go mod tidy`; confirm
       `make check` still green before any new code (research D1/D2)
-- [ ] T002 [P] Create `scripts/kind-registry.sh` (`up`/`down`): kind cluster
+- [x] T002 [P] Create `scripts/kind-registry.sh` (`up`/`down`): kind cluster
       `soulrealm-k8s` + local `registry:2` container wired per the
       documented kind-with-registry pattern (containerd registry config,
       shared network, `localhost:5001` on the host); the script MUST ensure
@@ -38,12 +38,12 @@ parity), US4 (scoped credential holds from inside the pod).
 **Purpose**: The shared rewrite helper, the backend package skeleton, and
 both hermetic test seams — every story builds on these.
 
-- [ ] T003 Extract `backend/natsurl/natsurl.go` (+ `natsurl_test.go`) from
+- [x] T003 Extract `backend/natsurl/natsurl.go` (+ `natsurl_test.go`) from
       `backend/msb`'s unexported `rewriteServers`/`rewriteServer`/
       `isLoopback`; `backend/msb` adopts it with behavior pinned by msb's
       existing tests staying green (plan structure decision — one rewrite
       implementation, two consumers)
-- [ ] T004 Create `backend/k8s/k8s.go` skeleton: `Backend{Client
+- [x] T004 Create `backend/k8s/k8s.go` skeleton: `Backend{Client
       kubernetes.Interface, Namespace, Registry, BaseImage, HostAlias}`
       with defaults (`default`, required, `alpine:3.22`, unset), `New()`,
       RFC 1123 name sanitization (`soulrealm-<workitem-id>` +
@@ -53,13 +53,13 @@ both hermetic test seams — every story builds on these.
       `restartPolicy: Never`, grace = 5 s, `emptyDir` `/scratch` workdir,
       Secret ro at `/creds`, env = workload-env contract via
       `backend/natsurl`) — no supervision yet
-- [ ] T005 [P] Create `backend/k8s/image.go` (+ `image_test.go`): per-run
+- [x] T005 [P] Create `backend/k8s/image.go` (+ `image_test.go`): per-run
       OCI assembly — artifact bytes as a layer on `BaseImage` at
       `/workload`, entrypoint `/workload` — and digest-pinned push tagged
       with the work-item id (go-containerregistry); unit tests against an
       in-process registry (`go-containerregistry/pkg/registry`) asserting
       layer content, entrypoint, tag, and returned digest (research D2)
-- [ ] T006 [P] Create the fake-clientset harness in
+- [x] T006 [P] Create the fake-clientset harness in
       `backend/k8s/k8s_test.go`: helpers that drive the fake's watch
       (status-update sequences, Deleted events) so supervision is testable
       hermetically (research D1/D7)
@@ -78,7 +78,7 @@ arm proving the zero-byte diff (SC-001).
 **Independent Test**: `make test-k8s` runs `TestK8sLaunchAgentEndToEnd`
 green; unit tests prove spec shape, mapping, and reap hermetically.
 
-- [ ] T007 [US1] Complete supervision + `handle` in `backend/k8s/k8s.go`:
+- [x] T007 [US1] Complete supervision + `handle` in `backend/k8s/k8s.go`:
       watch goroutine started by `Start` (field selector on the pod name,
       capture `ContainerStateTerminated` on every update — research D4),
       `Wait` (terminal phase or Deleted → exit mapping per data-model.md
@@ -87,7 +87,7 @@ green; unit tests prove spec shape, mapping, and reap hermetically.
       `sync.Once`), `Stop` (delete with `gracePeriodSeconds` =
       min(5 s, ctx remaining)), start-failure rollback (unwind Secret/pod,
       error, nothing left on the cluster)
-- [ ] T008 [P] [US1] Hermetic unit tests in `backend/k8s/k8s_test.go`
+- [x] T008 [P] [US1] Hermetic unit tests in `backend/k8s/k8s_test.go`
       against the fake: pod spec shape (single digest-pinned container,
       command+args, restartPolicy, grace, mounts, workdir, label), env
       block exactly the workload-env contract with rewritten servers and
@@ -147,7 +147,7 @@ handling covered hermetically.
       `integration/k8s_e2e_test.go`: workload exiting nonzero inside its
       pod → runner records `work.abandon`; afterwards the label sweep shows
       zero pods/Secrets (SC-003, US3 acceptance 1+3)
-- [ ] T013 [P] [US3] Hermetic unit test in `backend/k8s/k8s_test.go`: the
+- [x] T013 [P] [US3] Hermetic unit test in `backend/k8s/k8s_test.go`: the
       fake watch delivers a Deleted event with no termination state ever
       observed → `Wait` returns the uncoded failure (`Code: -1`) and reaps
       — the out-of-band-interference path (US3 edge case, research D4)
