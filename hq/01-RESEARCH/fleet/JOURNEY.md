@@ -185,3 +185,67 @@ question, not spiked.
 measured PASS-shaped in both variants (this spike). Remaining before
 graduation: **Bar 3** — scoped launch without the signing seed on the
 launching node.
+
+## 2026-07-30 — spike 3: delegated minting without the seed — Bar 3 met
+
+**Protocol** (spike code in the session scratchpad, throwaway). Operator-mode
+server that enforces user JWT permissions (the SC-003 machinery,
+`internal/natstest/operator.go` pattern). The harness stands in for the
+**enrollment authority**: it issues each node one ordinary scoped node
+credential — never signing material. **Node A** (minter node, separate OS
+process) holds the account signing seed via env (vault stand-in) and serves
+delegated minting on `SOULREALM.SVC.MINT.<realm>` — transient request-reply,
+using the repo's real `minter` package unchanged. **Node B** (separate OS
+process) holds no signing material: it requests one workload credential,
+writes the minted user credential into its own scratch dir (the k8s Secret
+analog), and launches the repo's **real `cmd/scope-probe` binary** with the
+M1.1 env contract.
+
+**Results** `[measured]`:
+
+- **Negative control**: the operator server refuses an unauthenticated
+  connection (Authorization Violation) — so the denials below prove
+  enforcement, not misconfiguration.
+- **Scope holds across the node boundary**: probe exit 0 — in-scope publish
+  allowed, out-of-scope publish denied by the server, with the byte-identical
+  SC-003/SC-004 probe.
+- **The seed never reaches node B**: asserted absent from node B's entire
+  scratch tree (only the minted creds file exists there — user JWT + user
+  seed), from its argv, its environment, and its captured output.
+- **Expiry floor measured**: a 2 s-TTL minted credential was actively
+  disconnected by the server **10 ms after its expiry** ("authentication
+  expired") — expiry is server-enforced on live connections, not advisory.
+
+**Findings**:
+
+- **Node enrollment is a real fleet requirement** `[measured]`: operator mode
+  rejects anonymous connections, so a node must be enrolled before it can
+  even ask for a mint. Fleet needs a once-per-node enrollment act issuing an
+  ordinary scoped node credential; the authority is wherever signing
+  material lives (episode 0002's named impire-tenants/vault tie). Minimal
+  permission sets discovered: minter node `{pub _INBOX.>, sub MINT}`,
+  launching node `{pub MINT, sub _INBOX.>}`.
+- **Revocation story, named** (the bar requires it): the floor is JWT `exp`,
+  server-enforced (measured at 10 ms); the escalation is the account
+  revocation list pushed through the resolver, or rotating the signing key
+  to invalidate everything it signed `[mechanism-argument]`.
+- **Alternative discriminated** `[judgment]`: a scoped *delegated signing
+  key* on each node would multiply seed-grade secrets and its static
+  permission template cannot express per-persona+topic dynamic scopes
+  cleanly; delegated minting reuses the existing minter seam unchanged and
+  keeps one seed holder. Revisit if minter availability becomes the launch
+  bottleneck — the minter node is a single point of failure for *launches*
+  (never for running workloads), mitigable with a queue group of minter
+  nodes.
+- Mint traffic rides `SOULREALM.SVC.*` transient request-reply — consistent
+  with the M1.2 rule; the signing seed never crosses the wire (only the
+  fresh per-workload user JWT + user seed do).
+
+**Caveats** `[mechanism-argument]`: the harness stood in for the enrollment
+authority — the real enrollment ceremony and the seed's home (vault) are
+design material. Single realm account; multi-account fleets unexplored.
+
+**Where the bars stand**: all three pre-registered bars measured PASS-shaped
+(spike 1: placement; spike 2: node death, both variants; spike 3: seedless
+scoped launch). The topic is ready for `/research-graduate fleet --to
+design`.
