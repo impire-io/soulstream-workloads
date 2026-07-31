@@ -1,6 +1,6 @@
 # Fleet — can the op-log alone place work across heterogeneous nodes and survive their deaths?
 
-**State:** active
+**State:** graduated
 **Started:** 2026-07-29
 
 ## Abstract
@@ -77,6 +77,47 @@ than rebuild its fleet layer from scratch.
 
 ## Verdict
 
-<Empty until graduation. Filled by /research-graduate: PASS/FAIL per bar with
-the honest findings, each load-bearing claim tagged [measured] /
-[mechanism-argument] / [judgment].>
+**Answer: yes — measured on all three bars.** The op-log alone places work
+and survives node death, with transient evidence allowed only to *delay*
+decisions, never to make them. Graduated to design
+`hq/02-DESIGN/0003-fleet.md` (episode 0010).
+
+- **Bar 1 — PASS** `[measured]`. Exactly-one-launch in **120/120** rounds
+  across six spike runs (bar needed 20/20), every round genuinely contested
+  (both nodes claimed, mean 2.00 claims/round; win splits 14/6 → 10/10 — no
+  starvation). A fresh third observer reconstructed the placing node for
+  every round from stream replay alone (first non-void claim = folded owner
+  = launch evidence). The whole realm was two topic subjects — zero `SVC`
+  traffic, zero auction ops: placement **is** `work.claim`, soulstream's
+  existing house rule. The auction variant was never needed.
+- **Bar 2 (as amended openly before any run — see JOURNEY) — PASS**
+  `[measured]`, both variants, 10/10 kills each within the ≤ 4 s bound
+  (window 2 s, cadence 500 ms, named before the runs): baseline min/mean/max
+  2.02/2.37/2.53 s; probe variant 2.01/2.37/2.55 s. Zero double-closes
+  (racing sweeps converge — the second abandon folds void), zero
+  resurrections, no abandon authored by a dead owner. Mechanism recorded:
+  **projection nominates (`StaleClaims`), transient evidence vetoes
+  (probe-before-abandon on core NATS, outside the stream capture), the log
+  decides (ordinary `work.abandon`)**. Controls: a progress@1 s owner was
+  never abandoned; a live-silent owner was falsely abandoned at 2.5 s in
+  the baseline and **never** with the probe (8 vetoes) — and the probe is
+  free on true deaths (a dead node's subscription dies with its connection
+  → instant no-responders) `[measured]`.
+- **Bar 3 — PASS** `[measured]`. A launching node with no signing material
+  — seed asserted absent from its scratch tree, argv, env, and output —
+  obtained a scoped credential over transient `SOULREALM.SVC.*`
+  request-reply and ran the byte-identical SC-003 probe against an
+  operator-mode server: in-scope allowed, out-of-scope denied; negative
+  control confirmed enforcement. Expiry floor measured: a 2 s-TTL
+  credential disconnected **10 ms** after expiry. Revocation story named:
+  TTL/exp as the floor `[measured]`; account revocation list or signing-key
+  rotation as escalation `[mechanism-argument]`.
+
+**Post-bar follow-up, measured:** spike 4 reversed spike 3's judgment
+against scoped delegated keys — one scoped signing key with a tag-template
+(`{{tag(topic)}}`) clamps permission-less users per-workload, server-side,
+in both directions, and rejects a self-permissioned user outright. The
+identity plane (`../soulidentity`) is the preferred minting/enrollment
+home; spike 3's delegated minting stands as the measured fallback. The
+reversal condition never fired: no coordinator, no auction, no persisted
+chatter anywhere.
