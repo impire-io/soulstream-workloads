@@ -14,7 +14,7 @@ are as load-bearing as the shipped code.
 > reversals, and findings that contradicted expectations. This duty is
 > anchored in `../00-GENESIS/how-we-work.md`.
 
-## Where things stand (2026-07-29)
+## Where things stand (2026-07-31)
 
 **The project was founded** ([episode 0001](0001-genesis.md)): soulrealm is the
 runtime companion to soulstream — soulstream records, soulrealm runs. The hq is
@@ -117,6 +117,23 @@ entirely inside `backend/k8s`. **Next:** research gates for the later
 horizons — Fleet, sandboxes (stage 5), tool ecosystem — and the `nats://`
 artifact-addressing question at the artifact-registry milestone.
 
+**The Fleet gate is met** ([episode 0010](0010-fleet.md)): the `fleet`
+research topic pre-registered three bars and four spikes measured all three
+PASS — placement **is** `work.claim` (exactly-one-launch 120/120 contested
+rounds, replay-reconstructible, zero transient signaling), node death
+reclaims via *projection nominates → probe vetoes → ordinary `work.abandon`
+decides* (10/10 kills per variant within bound; the probe eliminates the
+live-silent false positive at zero cost on true deaths), and a node without
+the signing seed launches a scope-enforced workload (expiry floor measured
+at 10 ms). Two open reversals on the record: Bar 2 amended pre-run when
+work.md's timeout-by-projection surfaced, and spike 3's judgment against
+scoped signing keys fell to spike 4's tag-template measurement — the minter
+role dissolves into the identity plane (`soulidentity`), amending episode
+0003's soulstream-only scope. Opened design
+[`0003-fleet.md`](../02-DESIGN/0003-fleet.md); roadmap Phase 3 (Fleet) is
+unblocked. **Next:** the spec-kit pass for the first Fleet milestone; the
+soulidentity tags-on-mint addition gates the preferred minting path.
+
 ## Episode index
 
 | # | Episode |
@@ -130,3 +147,4 @@ artifact-addressing question at the artifact-registry milestone.
 | 0007 | [A second wall: the microsandbox backend](0007-a-second-wall.md) |
 | 0008 | [A third wall on rented ground: Kubernetes as a backend](0008-kubernetes-backend.md) |
 | 0009 | [A third wall lands: the Kubernetes backend ships](0009-a-third-wall-lands.md) |
+| 0010 | [Fleet: the log nominates, evidence vetoes, the log decides](0010-fleet.md) |

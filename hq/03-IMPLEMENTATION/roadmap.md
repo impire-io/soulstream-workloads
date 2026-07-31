@@ -20,9 +20,11 @@ constitution III proven by a second backend ([episode
 M2.1 landed** ([episode 0008](../04-JOURNEY/0008-kubernetes-backend.md)
 research → [episode 0009](../04-JOURNEY/0009-a-third-wall-lands.md) build):
 the same declarations run as Kubernetes pods, artifact via a per-run OCI
-image through the operator's registry, credential as a Secret. The
-remaining horizons (Fleet, sandboxes-stage-5, the tool ecosystem) stay
-gated — see below.
+image through the operator's registry, credential as a Secret. **The Fleet
+research gate is met** ([episode 0010](../04-JOURNEY/0010-fleet.md), all
+three pre-registered bars measured PASS) — Phase 3 is unblocked with design
+[`0003-fleet.md`](../02-DESIGN/0003-fleet.md); the remaining horizons
+(sandboxes-stage-5, the tool ecosystem) stay gated — see below.
 
 ## Phase 0 — Substrate (research) — ✅ closed 2026-07-22
 
@@ -98,11 +100,28 @@ bars measured PASS); **landed the same day**.
   `make check && make test-k8s` green (five e2e scenarios, ~26 s;
   environment via `scripts/kind-registry.sh up`).
 
+## Phase 3 — Fleet (design → build) — *unblocked*
+
+**Gate met 2026-07-31** (research [episode
+0010](../04-JOURNEY/0010-fleet.md): three pre-registered bars measured PASS
+across four spikes; two open reversals on the record). Decided: placement
+**is** `work.claim` (no auction, no coordinator); reclaim is *projection
+nominates → probe vetoes → ordinary `work.abandon` decides*; nodes are
+homogeneous with the minter role dissolved into the identity plane
+(`soulidentity`). Design: [`0003-fleet.md`](../02-DESIGN/0003-fleet.md).
+
+- **M3.1 — first fleet milestone.** Runs the spec-kit flow against design
+  0003 (§8 acceptance criteria: two real nodes, contested placement,
+  kill → reclaim within bound, seedless scoped launch, seams untouched).
+  Exit criteria made precise per feature in `specs/NNN-*/`. External
+  dependency, tracked openly: the preferred minting path needs
+  soulidentity to stamp tags on mints (its M2 "consumer-proven" clause);
+  the measured delegated-minting fallback works today.
+
 ## Later horizons (named, not planned)
 
-Held behind Phase 1; each will get its own research gate when it approaches:
+Each will get its own research gate when it approaches:
 
-- **Fleet.** More than one node; location-transparent scheduling.
 - **Sandboxes.** Soulstream work-extension stage 5 — the physical bench —
   gated on stage-4 execution being real in soulstream.
 - **Tool ecosystem.** MCP servers and exec sandboxes as first-class,

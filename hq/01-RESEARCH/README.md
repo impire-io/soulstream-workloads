@@ -42,14 +42,13 @@ the work produces.
 
 ## Active topics
 
-| Topic | Started | Question |
-|---|---|---|
-| [`fleet/`](fleet/README.md) | 2026-07-29 | Can the op-log alone place work across heterogeneous nodes and survive their deaths? |
-
-Graduated so far: `nex-runtime-substrate` (2026-07-22, journey
+*None open.* Graduated so far: `nex-runtime-substrate` (2026-07-22, journey
 [episode 0002](../04-JOURNEY/0002-the-substrate-decision.md) → design
-[`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md)) and
+[`0001-soulrealm-runtime.md`](../02-DESIGN/0001-soulrealm-runtime.md)),
 `kubernetes-backend` (2026-07-29, journey [episode
 0008](../04-JOURNEY/0008-kubernetes-backend.md) → design
-[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md));
-both folders removed, with the full trails in git history.
+[`0002-kubernetes-backend.md`](../02-DESIGN/0002-kubernetes-backend.md)),
+and `fleet` (2026-07-31, journey [episode
+0010](../04-JOURNEY/0010-fleet.md) → design
+[`0003-fleet.md`](../02-DESIGN/0003-fleet.md)); all folders removed, with
+the full trails in git history.

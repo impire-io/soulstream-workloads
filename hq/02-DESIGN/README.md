@@ -20,6 +20,7 @@ made during implementation propagate back here (see
 |---|---|---|---|
 | 0001 | [`0001-soulrealm-runtime.md`](0001-soulrealm-runtime.md) | The runtime architecture: single control plane on the op-log, the role×lifecycle workload model, per-workload identity, lifecycle-as-ops, pluggable backends, the NEX influence ledger | graduated from `nex-runtime-substrate` (episode 0002) |
 | 0002 | [`0002-kubernetes-backend.md`](0002-kubernetes-backend.md) | The Kubernetes isolation backend: pod-per-workload behind the unchanged seam — per-run OCI artifact images, Secret credential delivery, watch-based supervision, backend-not-scheduler scope guard | graduated from `kubernetes-backend` (episode 0008); built M2.1 (episode 0009) |
+| 0003 | [`0003-fleet.md`](0003-fleet.md) | The fleet: homogeneous nodes, claim-race placement on the op-log, sweep + probe-before-abandon reclaim, identity-plane enrollment and minting (tag-template scopes preferred, delegated minting fallback) | graduated from `fleet` (episode 0010); not yet built |
 
 Read 0001 first — it is the map. It fixes the decided shape and marks the `[O]`
 sub-questions (minter signing story, multi-node placement, backend details)
