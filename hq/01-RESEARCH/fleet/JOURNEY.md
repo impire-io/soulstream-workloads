@@ -293,3 +293,49 @@ signing key with a tag-template, a tagged permission-less user, the same
 SC-003 probe — in-scope-per-tag allowed, out-of-scope denied. If it
 fails, spike 3's delegated-minting path stands as the measured fallback,
 relocated into the identity plane.
+
+## 2026-07-31 — spike 4: tag-template scoped minting — the reversal measured
+
+**Protocol** (spike code in the session scratchpad, throwaway). Operator-mode
+server (nats-server 2.14.3) whose realm account carries **one scoped signing
+key** (role `soulrealm-agent`) holding the agent template from
+`minter/scope.go` with the dynamic parts as tag functions —
+`SOULSTREAM.TOPICS.OPS.{{tag(topic)}}` pub+sub,
+`SOULSTREAM.PERSONA.NOTIFY.{{tag(persona)}}` sub, the static remainder
+unchanged. Users are minted **permission-less** (`SetScoped`) carrying only
+tags — exactly the soulidentity mint shape.
+
+**Results** `[measured]`:
+
+- **The per-tag clamp holds in both directions**: the `topic:planning-x7`
+  user publishes its own ops subject and is denied `other-zz99`'s and
+  `SOULREALM.SCOPE.DENIED`; the `topic:other-zz99` user gets the exact
+  mirror image. One static signing key expresses per-workload dynamic
+  scope, enforced by the server.
+- **The repo's real SC-003 probe passes** (exit 0) with the tagged scoped
+  credential — byte-identical probe, same env contract.
+- **The clamp control**: a user carrying its own `>` permissions signed by
+  the scoped key is **rejected at connection time** (Authorization
+  Violation) — a compromised mint path cannot over-scope past the
+  template. This is a security property the spike-3 JWT-embedded model
+  does not have.
+
+**Conclusion**: spike 3's judgment against scoped delegated keys is now
+**reversed on measurement** — both original objections are dissolved
+(tag-templates express dynamic scopes; vault custody multiplies no
+secrets). Design 0003 therefore has two measured minting paths:
+**(a) preferred** — tag-template scoped mint through the identity plane
+(soulidentity): permissions live server-side, mints cannot over-scope,
+no seed crosses the wire in either direction; needs only the
+tags-on-mint addition in soulidentity (the M2 "consumer-proven missing
+piece"); **(b) fallback** — spike 3's delegated minting with
+JWT-embedded permissions, measured and working today.
+
+**Caveat** `[mechanism-argument]`: template parity is with today's
+`PermissionSet` — the exact ops subject, no sub-topic descendants; a
+`{{tag(topic)}}.>` descendant allowance is untested (the current minter
+does not grant descendants either).
+
+**Topic state**: all three pre-registered bars and the follow-up
+identity-plane question measured. Ready for `/research-graduate fleet
+--to design`.
