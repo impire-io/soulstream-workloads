@@ -249,3 +249,47 @@ design material. Single realm account; multi-account fleets unexplored.
 (spike 1: placement; spike 2: node death, both variants; spike 3: seedless
 scoped launch). The topic is ready for `/research-graduate fleet --to
 design`.
+
+## 2026-07-31 — desk findings: the minter role dissolves into the identity plane
+
+Two questions asked of the spike-3 result (no code run):
+
+- **Separate minter vs launching nodes?** The split was **proof structure,
+  not architecture** — two processes existed to assert the seed boundary.
+  The design answer: no soulrealm node is a minter. Minting authority
+  belongs to the identity plane, every soulrealm node is a homogeneous
+  launching node holding only its enrollment credential, and mint
+  availability becomes the identity plane's problem, not a fleet topology
+  concern.
+- **`../soulidentity`?** It is nearly the whole missing piece — spike 3's
+  minter node was an unwitting hand-rolled miniature of it
+  `[measured against its repo: M1/M3/M4 shipped 2026-07-28, soulstream
+  cross-service proof measured 2026-07-29]`:
+  - the **enrollment authority** spike 3 discovered we need: the M4
+    auth-callout lane admits a node from a bootstrap token with an
+    ephemeral TTL-bounded credential (TTL = revocation propagation bound);
+  - the **seed holder**: vault-held signing keys, xkey-sealed sign/mint
+    request-reply — and for ephemeral mints the caller supplies only the
+    user *public* key, so **no seed crosses the wire in either direction**
+    (strictly better than spike 3's reply, which carried the minted user
+    seed);
+  - the **seam already fits**: soulrealm's `minter.Minter` was written for
+    an external authority; soulidentity's wiring rule (consumers import
+    it, never the reverse) puts soulrealm in the intended position, and
+    its M2 explicitly waits for consumer-proven needs.
+
+**Open reversal of a spike-3 judgment** (recorded openly): spike 3
+discriminated against scoped delegated signing keys because static
+templates cannot express per-persona+topic scopes and extra keys multiply
+seed-grade secrets. SoulIdentity's model — permission-less `SetScoped`
+user JWTs with the scoped signing key's template deciding server-side —
+**dissolves the second objection** (vault custody, no extra secrets on
+nodes) and NATS tag-templates (`{{tag(topic)}}`-style expansion) would
+dissolve the first. **Unmeasured**: tag-template scope enforcement against
+a live server, and soulidentity's mint does not stamp tags today (a
+candidate M2 consumer-proven addition). Design 0003's minting story must
+not lean on this mechanism before a micro-spike measures it: a scoped
+signing key with a tag-template, a tagged permission-less user, the same
+SC-003 probe — in-scope-per-tag allowed, out-of-scope denied. If it
+fails, spike 3's delegated-minting path stands as the measured fallback,
+relocated into the identity plane.
