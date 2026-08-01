@@ -2,11 +2,8 @@ module github.com/impire-io/soulrealm
 
 go 1.26.2
 
-replace github.com/impire-io/soulstream => ../soulstream
-
 require (
 	github.com/google/go-containerregistry v0.21.7
-	github.com/impire-io/soulstream v0.0.0-00010101000000-000000000000
 	github.com/nats-io/jwt/v2 v2.8.2
 	github.com/nats-io/nats-server/v2 v2.14.3
 	github.com/nats-io/nats.go v1.52.0
@@ -31,6 +28,7 @@ require (
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gowebpki/jcs v1.0.1 // indirect
+	github.com/impire-io/soulstream v0.6.0
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect

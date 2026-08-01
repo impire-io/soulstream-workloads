@@ -14,7 +14,14 @@ are as load-bearing as the shipped code.
 > reversals, and findings that contradicted expectations. This duty is
 > anchored in `../00-GENESIS/how-we-work.md`.
 
-## Where things stand (2026-07-31)
+## Where things stand (2026-08-01)
+
+**Soulstream is pinned at v0.6.0 — the dev replace is gone** ([episode
+0011](0011-pinned-to-the-record.md)): soulnode's composition research named
+the filesystem `replace` a release blocker for any consumer wanting to pin
+soulrealm; soulstream's tag proved current (main = v0.6.0 + docs only
+[measured]) and the whole gate runs green against it. Co-development now
+rides an untracked `go.work`; soulstream changes arrive by tag bump.
 
 **The project was founded** ([episode 0001](0001-genesis.md)): soulrealm is the
 runtime companion to soulstream — soulstream records, soulrealm runs. The hq is
@@ -148,3 +155,4 @@ soulidentity tags-on-mint addition gates the preferred minting path.
 | 0008 | [A third wall on rented ground: Kubernetes as a backend](0008-kubernetes-backend.md) |
 | 0009 | [A third wall lands: the Kubernetes backend ships](0009-a-third-wall-lands.md) |
 | 0010 | [Fleet: the log nominates, evidence vetoes, the log decides](0010-fleet.md) |
+| 0011 | [Pinned to the record: the soulstream replace drops](0011-pinned-to-the-record.md) |
