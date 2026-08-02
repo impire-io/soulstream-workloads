@@ -1,11 +1,11 @@
 # Soulrealm — orientation
 
-**Read [`hq/`](hq/README.md) first.** Everything about how this project is run
-lives there: the vision and constitution ([`hq/00-GENESIS/`](hq/00-GENESIS/README.md)),
-active research ([`hq/01-RESEARCH/`](hq/01-RESEARCH/README.md)), designs
-([`hq/02-DESIGN/`](hq/02-DESIGN/README.md)), the roadmap
-([`hq/03-IMPLEMENTATION/`](hq/03-IMPLEMENTATION/README.md)), and the honest log
-([`hq/04-JOURNEY/`](hq/04-JOURNEY/README.md)).
+**Read [`../soul-hq/`](../soul-hq/README.md) first.** Everything about how this project is run
+lives there: the vision and constitution ([`../soul-hq/00-GENESIS/`](../soul-hq/00-GENESIS/README.md)),
+active research ([`../soul-hq/01-RESEARCH/`](../soul-hq/01-RESEARCH/README.md)), designs
+([`../soul-hq/02-DESIGN/soulrealm/`](../soul-hq/02-DESIGN/soulrealm/README.md)), the roadmap
+([`../soul-hq/03-IMPLEMENTATION/`](../soul-hq/03-IMPLEMENTATION/README.md)), and the honest log
+([`../soul-hq/04-JOURNEY/`](../soul-hq/04-JOURNEY/README.md)).
 
 ## What this is
 
@@ -18,20 +18,20 @@ Soulstream is the record; soulrealm is the room.
 **Phase 1 complete — M1.1, M1.2, and M1.3 have landed.** The runtime is a
 from-scratch, **NEX-influenced** build with the soulstream op-log as the
 *single control plane* — decided in [journey
-0002](hq/04-JOURNEY/0002-the-substrate-decision.md), specified in design
-[`0001-soulrealm-runtime.md`](hq/02-DESIGN/0001-soulrealm-runtime.md). NEX is
+0002](../soul-hq/04-JOURNEY/0002-soulrealm-the-substrate-decision.md), specified in design
+[`0001-soulrealm-runtime.md`](../soul-hq/02-DESIGN/soulrealm/0001-soulrealm-runtime.md). NEX is
 influence, not a dependency. The Go module exists and runs: an agent launches
 and posts a turn attributed to its persona ([journey
-0004](hq/04-JOURNEY/0004-the-first-agent-runs.md)), a tool answers an agent's
-request-reply call ([journey 0005](hq/04-JOURNEY/0005-a-tool-answers.md)),
+0004](../soul-hq/04-JOURNEY/0004-soulrealm-the-first-agent-runs.md)), a tool answers an agent's
+request-reply call ([journey 0005](../soul-hq/04-JOURNEY/0005-soulrealm-a-tool-answers.md)),
 and the same declarations run unchanged inside microsandbox microVMs —
 backend chosen node-side, constitution III proven ([journey
-0007](hq/04-JOURNEY/0007-a-second-wall.md)). The real-microVM proof is
+0007](../soul-hq/04-JOURNEY/0020-soulrealm-a-second-wall.md)). The real-microVM proof is
 `make test-msb` (needs `msb` installed); the default gate stays hermetic.
 **Phase 2 / M2.1 has landed**: the same declarations run as Kubernetes pods
-([journey 0008](hq/04-JOURNEY/0008-kubernetes-backend.md) research →
-[journey 0009](hq/04-JOURNEY/0009-a-third-wall-lands.md) build; design
-[`0002-kubernetes-backend.md`](hq/02-DESIGN/0002-kubernetes-backend.md)) —
+([journey 0008](../soul-hq/04-JOURNEY/0024-soulrealm-kubernetes-backend.md) research →
+[journey 0009](../soul-hq/04-JOURNEY/0028-soulrealm-a-third-wall-lands.md) build; design
+[`0002-kubernetes-backend.md`](../soul-hq/02-DESIGN/soulrealm/0002-kubernetes-backend.md)) —
 artifact as a per-run OCI image via the operator's registry, credential as
 a Secret, runner-supervised pods. The real-cluster proof is `make test-k8s`
 (needs `scripts/kind-registry.sh up`); the default gate stays hermetic.

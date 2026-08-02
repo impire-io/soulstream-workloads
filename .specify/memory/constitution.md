@@ -1,1 +1,1 @@
-../../hq/00-GENESIS/constitution.md
+../../../soul-hq/00-GENESIS/constitution.md

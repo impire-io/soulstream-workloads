@@ -6,8 +6,8 @@ tasks → implement, plus analyze / checklist / taskstoissues and the git
 branching helpers.
 
 - [`memory/constitution.md`](memory/constitution.md) — a **symlink** to
-  `hq/00-GENESIS/constitution.md`, so every plan's Constitution Check reads the
-  canonical articles (the pattern `hq/00-GENESIS/how-we-work.md` commits to).
+  `../soul-hq/00-GENESIS/constitution.md`, so every plan's Constitution Check reads the
+  canonical articles (the pattern `../soul-hq/00-GENESIS/how-we-work.md` commits to).
   The templates keep the generic `[Gates determined based on constitution
   file]` placeholder rather than a baked-in copy, so the check always reflects
   soulrealm's own constitution — not any other project's.
@@ -27,5 +27,5 @@ branching helpers.
 Feature specs live in `specs/NNN-<slug>/` at the repo root. `feature.json` is
 written by `/speckit-specify` when a feature begins — it is per-feature state,
 not vendored, so it is absent until the next feature starts. Authoring still
-follows `hq/00-GENESIS/how-we-work.md`: research never goes through spec-kit,
+follows `../soul-hq/00-GENESIS/how-we-work.md`: research never goes through spec-kit,
 implementation always does.
