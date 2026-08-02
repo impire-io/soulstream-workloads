@@ -16,7 +16,8 @@ func TestPermissionSetScope(t *testing.T) {
 	ps := s.PermissionSet()
 
 	ops := topic.OpsSubject(s.Topic)
-	wantPub := map[string]bool{ops: true, notifyWildcard: true, svcWildcard: true, inboxWildcard: true}
+	wantPub := map[string]bool{ops: true, notifyWildcard: true, svcWildcard: true,
+		inboxWildcard: true, jsAPIInfo: true}
 	if len(ps.Pub) != len(wantPub) {
 		t.Fatalf("pub allow = %v, want %d entries", ps.Pub, len(wantPub))
 	}

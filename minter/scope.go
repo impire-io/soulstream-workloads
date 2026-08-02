@@ -25,6 +25,12 @@ const (
 	svcPrefix      = "SOULREALM.SVC."
 	svcWildcard    = svcPrefix + ">"
 	inboxWildcard  = "_INBOX.>"
+	// jsAPIInfo is the one JetStream API subject an agent needs:
+	// realm.NewClient's availability probe (js.AccountInfo). Found by the
+	// first enforcing consumer (soulnode M1.3) — the open-server suites
+	// never noticed its absence; without it the reference agent's own
+	// realm client refuses to construct under operator mode.
+	jsAPIInfo = "$JS.API.INFO"
 )
 
 // Scope is the pure description of what a persona may touch, by role.
@@ -61,7 +67,7 @@ func (s Scope) PermissionSet() PermissionSet {
 	}
 	ops := topic.OpsSubject(s.Topic)
 	return PermissionSet{
-		Pub: []string{ops, notifyWildcard, svcWildcard, inboxWildcard},
+		Pub: []string{ops, notifyWildcard, svcWildcard, inboxWildcard, jsAPIInfo},
 		Sub: []string{ops, topic.InfoSubjectWildcard, notifyPrefix + s.Persona, inboxWildcard},
 	}
 }
