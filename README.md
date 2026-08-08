@@ -79,4 +79,9 @@ each feature's spec-kit artifacts freeze under `specs/NNN-*/` as it lands.
 
 ## License
 
-Soulrealm is released under the [MIT License](LICENSE) — © 2026 Daan Gerits.
+Soulrealm is [fair-code](https://faircode.io) licensed under the
+[Sustainable Use License](LICENSE) — © 2026 Daan Gerits. Free to use, modify,
+and self-host for internal or non-commercial use; offering it to others as a
+paid product or service requires an agreement — see
+[impire.io/license](https://impire.io/license/). Versions released before this
+change remain MIT.
