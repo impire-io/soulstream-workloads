@@ -1,8 +1,8 @@
 // Command scope-probe is the SC-004 reference workload: it verifies, from
 // wherever it runs (native process, microVM, pod — the server cannot tell,
 // which is the point), that its minted credential is enforced by the realm.
-// It honors the SOULREALM_* env contract, connects with its credential,
-// publishes in-scope on the transient SOULREALM.SVC.> namespace (allowed for
+// It honors the SOULSTREAM_* env contract, connects with its credential,
+// publishes in-scope on the transient SOULSTREAM.SVC.> namespace (allowed for
 // the agent role, never captured by any stored stream), then publishes
 // out-of-scope and requires the server's permissions violation.
 //
@@ -22,12 +22,12 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/impire-io/soulrealm/backend/native"
+	"github.com/impire-io/soulstream-workloads/backend/native"
 )
 
 const (
-	inScopeSubject    = "SOULREALM.SVC.probe-ping"
-	outOfScopeSubject = "SOULREALM.SCOPE.DENIED"
+	inScopeSubject    = "SOULSTREAM.SVC.probe-ping"
+	outOfScopeSubject = "SOULSTREAM.SCOPE.DENIED"
 )
 
 func main() {

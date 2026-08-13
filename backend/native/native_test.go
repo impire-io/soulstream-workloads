@@ -8,8 +8,8 @@ import (
 
 	"github.com/nats-io/nkeys"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 func testCred(t *testing.T) minter.PersonaScopedCredential {
@@ -74,20 +74,20 @@ func TestSignalledExit(t *testing.T) {
 	}
 }
 
-// The child must see its own scoped identity but NOT soulrealm's own env —
+// The child must see its own scoped identity but NOT soulstream-workloads's own env —
 // proving the clean-env isolation (constitution II). The parent sets a fake
-// soulrealm secret; the child exits 0 only if creds+topic are present and the
+// soulstream-workloads secret; the child exits 0 only if creds+topic are present and the
 // secret is absent.
 func TestCleanEnvIsolation(t *testing.T) {
-	t.Setenv("SOULREALM_TEST_SECRET", "the-signing-key")
-	script := `[ -f "$SOULREALM_NATS_CREDS" ] && [ "$SOULREALM_TOPIC" = "t-ab12" ] && ` +
-		`[ "$SOULREALM_PERSONA" = "researcher" ] && [ -z "$SOULREALM_TEST_SECRET" ]`
+	t.Setenv("SOULSTREAM_TEST_SECRET", "the-signing-key")
+	script := `[ -f "$SOULSTREAM_NATS_CREDS" ] && [ "$SOULSTREAM_TOPIC" = "t-ab12" ] && ` +
+		`[ "$SOULSTREAM_PERSONA" = "researcher" ] && [ -z "$SOULSTREAM_TEST_SECRET" ]`
 	h, err := New().Start(context.Background(), spec(t, "/bin/sh", "-c", script))
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	if st := h.Wait(); st.Code != 0 || st.Signalled() {
-		t.Fatalf("isolation check failed (status %+v): creds/topic/persona missing or the soulrealm secret leaked", st)
+		t.Fatalf("isolation check failed (status %+v): creds/topic/persona missing or the soulstream-workloads secret leaked", st)
 	}
 }
 

@@ -1,6 +1,6 @@
 # .specify — spec-kit scaffolding
 
-The full spec-kit setup for soulrealm, vendored to match the sibling `pra`
+The full spec-kit setup for soulstream-workloads, vendored to match the sibling `pra`
 project so the whole `/speckit-*` flow runs here: specify → clarify → plan →
 tasks → implement, plus analyze / checklist / taskstoissues and the git
 branching helpers.
@@ -10,7 +10,7 @@ branching helpers.
   canonical articles (the pattern `../soul-hq/00-GENESIS/how-we-work.md` commits to).
   The templates keep the generic `[Gates determined based on constitution
   file]` placeholder rather than a baked-in copy, so the check always reflects
-  soulrealm's own constitution — not any other project's.
+  soulstream-workloads's own constitution — not any other project's.
 - [`templates/`](templates/) — the generic spec / plan / tasks / checklist /
   constitution templates.
 - [`scripts/bash/`](scripts/bash/) — the workflow scripts the `/speckit-plan`,

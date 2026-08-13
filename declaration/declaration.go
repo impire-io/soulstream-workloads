@@ -14,7 +14,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/impire-io/soulstream/identity"
+	"github.com/impire-io/soulstream-core/identity"
 )
 
 // Role is what a workload is to the realm.

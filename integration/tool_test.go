@@ -8,21 +8,21 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 
-	"github.com/impire-io/soulstream/realm"
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/realm"
+	"github.com/impire-io/soulstream-core/topic"
 
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/internal/natstest"
-	"github.com/impire-io/soulrealm/minter"
-	"github.com/impire-io/soulrealm/runner"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/internal/natstest"
+	"github.com/impire-io/soulstream-workloads/minter"
+	"github.com/impire-io/soulstream-workloads/runner"
 )
 
-// TestAgentCallsToolEndToEnd is SC-001 + SC-002 for M1.2: soulrealm launches a
+// TestAgentCallsToolEndToEnd is SC-001 + SC-002 for M1.2: soulstream-workloads launches a
 // tool service; an agent discovers it by name and calls it (uppercase round
 // trip); the tool's lifecycle is open+claim at launch and done at stop.
 func TestAgentCallsToolEndToEnd(t *testing.T) {
-	toolPath := buildCmd(t, "github.com/impire-io/soulrealm/cmd/tool-upper")
+	toolPath := buildCmd(t, "github.com/impire-io/soulstream-workloads/cmd/tool-upper")
 
 	url, shutdown := natstest.StartJetStream(t)
 	defer shutdown()
@@ -34,7 +34,7 @@ func TestAgentCallsToolEndToEnd(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestAgentCallsToolEndToEnd(t *testing.T) {
 	}
 	var doneFound bool
 	for _, w := range mt.WorkItems {
-		if w.Status == topic.WorkDone && w.Author == "soulrealm-runner" {
+		if w.Status == topic.WorkDone && w.Author == "soulstream-workloads-runner" {
 			doneFound = true
 		}
 	}

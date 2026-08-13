@@ -7,11 +7,11 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/topic"
 
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/internal/natstest"
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/internal/natstest"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 // TestMintedCredentialScopeEnforced is SC-003: against an operator-mode server

@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 // TopicClient is the subset of the soulstream topic Handle the runner needs to

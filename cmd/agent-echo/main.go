@@ -1,6 +1,6 @@
-// Command agent-echo is a minimal soulrealm agent — the reference workload
+// Command agent-echo is a minimal soulstream-workloads agent — the reference workload
 // artifact for the M1.1 slice and quickstart. It reads the credentials and
-// realm/topic that soulrealm injected into its environment, connects as its
+// realm/topic that soulstream-workloads injected into its environment, connects as its
 // persona, posts one turn, and exits.
 package main
 
@@ -12,8 +12,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/impire-io/soulstream/realm"
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/realm"
+	"github.com/impire-io/soulstream-core/topic"
 )
 
 func main() {
@@ -24,13 +24,13 @@ func main() {
 }
 
 func run() error {
-	servers := os.Getenv("SOULREALM_NATS_SERVERS")
-	creds := os.Getenv("SOULREALM_NATS_CREDS")
-	realmName := os.Getenv("SOULREALM_REALM")
-	persona := os.Getenv("SOULREALM_PERSONA")
-	topicPath := os.Getenv("SOULREALM_TOPIC")
+	servers := os.Getenv("SOULSTREAM_NATS_SERVERS")
+	creds := os.Getenv("SOULSTREAM_NATS_CREDS")
+	realmName := os.Getenv("SOULSTREAM_REALM")
+	persona := os.Getenv("SOULSTREAM_PERSONA")
+	topicPath := os.Getenv("SOULSTREAM_TOPIC")
 	if servers == "" || realmName == "" || persona == "" || topicPath == "" {
-		return fmt.Errorf("missing SOULREALM_NATS_SERVERS/REALM/PERSONA/TOPIC in environment")
+		return fmt.Errorf("missing SOULSTREAM_NATS_SERVERS/REALM/PERSONA/TOPIC in environment")
 	}
 
 	var opts []nats.Option

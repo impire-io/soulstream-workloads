@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/impire-io/soulrealm/backend"
+	"github.com/impire-io/soulstream-workloads/backend"
 )
 
 func TestOutcome(t *testing.T) {

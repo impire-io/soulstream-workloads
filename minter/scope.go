@@ -9,20 +9,20 @@
 package minter
 
 import (
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/topic"
 
-	"github.com/impire-io/soulrealm/declaration"
+	"github.com/impire-io/soulstream-workloads/declaration"
 )
 
 // Realm-subject building blocks. Topic/notify subjects mirror soulstream's
 // taxonomy (they are stored ops on the SOULSTREAM.> stream). Tool request-reply
-// is TRANSIENT — not a stored op — so it lives on soulrealm's own SOULREALM.SVC.*
+// is TRANSIENT — not a stored op — so it lives on soulstream-workloads's own SOULSTREAM.SVC.*
 // namespace, which the soulstream stream deliberately does not capture (else a
 // JetStream ack would race the tool's reply).
 const (
 	notifyPrefix   = "SOULSTREAM.PERSONA.NOTIFY."
 	notifyWildcard = notifyPrefix + "*"
-	svcPrefix      = "SOULREALM.SVC."
+	svcPrefix      = "SOULSTREAM.SVC."
 	svcWildcard    = svcPrefix + ">"
 	inboxWildcard  = "_INBOX.>"
 	// jsAPIInfo is the one JetStream API subject an agent needs:

@@ -1,6 +1,6 @@
 // Package k8s runs workloads as Kubernetes pods — one runner-supervised pod
 // per workload, the third isolation backend behind the seam (constitution
-// III). The workload sees the same SOULREALM_* env contract as under native:
+// III). The workload sees the same SOULSTREAM_* env contract as under native:
 // the credential arrives as a Secret mounted read-only (never touching host
 // disk), scratch is an in-pod emptyDir workdir, and loopback NATS URLs are
 // rewritten to the node's host alias (backend/natsurl). The artifact ships
@@ -32,9 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/backend/natsurl"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/backend/natsurl"
 )
 
 // Defaults for the node-side backend configuration. None of these may appear
@@ -48,14 +48,14 @@ const (
 // (native parity: cwd = scratch); the credential is a Secret mounted
 // read-only; the artifact is the per-run image's entrypoint.
 const (
-	podPrefix      = "soulrealm-"
+	podPrefix      = "soulstream-workloads-"
 	guestScratch   = "/scratch"
 	guestCredsDir  = "/creds"
 	guestCredsPath = guestCredsDir + "/nats.creds"
 	guestWorkload  = "/workload"
 
 	managedByKey   = "app.kubernetes.io/managed-by"
-	managedByValue = "soulrealm"
+	managedByValue = "soulstream-workloads"
 )
 
 // stopGrace mirrors the native backend's SIGTERM→SIGKILL grace, expressed as
@@ -78,7 +78,7 @@ type Backend struct {
 	// Namespace all workload pods and Secrets live in.
 	Namespace string
 	// Registry is the OCI repository prefix per-run artifact images are
-	// pushed to and pulled from (e.g. "localhost:5001/soulrealm"). Required.
+	// pushed to and pulled from (e.g. "localhost:5001/soulstream-workloads"). Required.
 	Registry string
 	// BaseImage is the CA-trusted base the artifact is layered onto.
 	BaseImage string
@@ -127,7 +127,7 @@ func (b *Backend) Start(ctx context.Context, spec backend.LaunchSpec) (backend.H
 		return nil, fmt.Errorf("k8s: no cluster client configured")
 	}
 	if b.Registry == "" {
-		return nil, fmt.Errorf("k8s: no registry configured (SOULREALM_K8S_REGISTRY)")
+		return nil, fmt.Errorf("k8s: no registry configured (SOULSTREAM_K8S_REGISTRY)")
 	}
 	name := podName(spec.ScratchDir)
 
@@ -139,7 +139,7 @@ func (b *Backend) Start(ctx context.Context, spec backend.LaunchSpec) (backend.H
 		return nil, fmt.Errorf("k8s: artifact %s is not an ELF binary (platform mismatch — build GOOS=linux for the cluster)", spec.Artifact)
 	}
 	if b.HostAlias == "" && natsurl.HasLoopback(spec.Cred.NatsServers) {
-		return nil, fmt.Errorf("k8s: NATS servers include loopback but no host alias is configured — pods cannot reach the node's loopback (SOULREALM_K8S_HOST_ALIAS)")
+		return nil, fmt.Errorf("k8s: NATS servers include loopback but no host alias is configured — pods cannot reach the node's loopback (SOULSTREAM_K8S_HOST_ALIAS)")
 	}
 
 	ref, err := b.images().Publish(ctx, artifact, name)

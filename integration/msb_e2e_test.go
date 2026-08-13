@@ -20,19 +20,19 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/impire-io/soulstream/realm"
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/realm"
+	"github.com/impire-io/soulstream-core/topic"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/backend/msb"
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/internal/natstest"
-	"github.com/impire-io/soulrealm/minter"
-	"github.com/impire-io/soulrealm/runner"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/backend/msb"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/internal/natstest"
+	"github.com/impire-io/soulstream-workloads/minter"
+	"github.com/impire-io/soulstream-workloads/runner"
 )
 
-// requireNoSandboxes asserts SC-004's zero-leftovers clause: no soulrealm-*
+// requireNoSandboxes asserts SC-004's zero-leftovers clause: no soulstream-workloads-*
 // sandbox survives its workload.
 func requireNoSandboxes(t *testing.T) {
 	t.Helper()
@@ -40,8 +40,8 @@ func requireNoSandboxes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("msb ls: %v\n%s", err, out)
 	}
-	if strings.Contains(string(out), "soulrealm-") {
-		t.Fatalf("SC-004: leftover soulrealm sandboxes:\n%s", out)
+	if strings.Contains(string(out), "soulstream-workloads-") {
+		t.Fatalf("SC-004: leftover soulstream-workloads sandboxes:\n%s", out)
 	}
 }
 
@@ -57,8 +57,8 @@ func requireNoSandboxes(t *testing.T) {
 func TestMsbLaunchAgentEndToEnd(t *testing.T) {
 	// The declared artifact path is stable; its content is provisioned per run.
 	artifactPath := filepath.Join(t.TempDir(), "agent-echo")
-	hostBuild := buildCmd(t, "github.com/impire-io/soulrealm/cmd/agent-echo")
-	linuxBuild := buildCmdLinux(t, "github.com/impire-io/soulrealm/cmd/agent-echo")
+	hostBuild := buildCmd(t, "github.com/impire-io/soulstream-workloads/cmd/agent-echo")
+	linuxBuild := buildCmdLinux(t, "github.com/impire-io/soulstream-workloads/cmd/agent-echo")
 	provision := func(src string) {
 		data, err := os.ReadFile(src)
 		if err != nil {
@@ -78,7 +78,7 @@ func TestMsbLaunchAgentEndToEnd(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestMsbLaunchAgentEndToEnd(t *testing.T) {
 		}
 	}
 	for _, w := range mt.WorkItems {
-		if w.Status == topic.WorkDone && w.Author == "soulrealm-runner" {
+		if w.Status == topic.WorkDone && w.Author == "soulstream-workloads-runner" {
 			done++
 		}
 	}
@@ -209,7 +209,7 @@ func main() {
 // tool INSIDE a microVM — discovery by name, uppercase round trip, stop →
 // work.done, everything reaped.
 func TestMsbAgentCallsToolEndToEnd(t *testing.T) {
-	toolPath := buildCmdLinux(t, "github.com/impire-io/soulrealm/cmd/tool-upper")
+	toolPath := buildCmdLinux(t, "github.com/impire-io/soulstream-workloads/cmd/tool-upper")
 
 	url, shutdown := natstest.StartJetStream(t)
 	defer shutdown()
@@ -220,7 +220,7 @@ func TestMsbAgentCallsToolEndToEnd(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestMsbAgentCallsToolEndToEnd(t *testing.T) {
 	}
 	var doneFound bool
 	for _, w := range mt.WorkItems {
-		if w.Status == topic.WorkDone && w.Author == "soulrealm-runner" {
+		if w.Status == topic.WorkDone && w.Author == "soulstream-workloads-runner" {
 			doneFound = true
 		}
 	}
@@ -318,7 +318,7 @@ func TestMsbCrashAbandons(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -349,11 +349,11 @@ func TestMsbCrashAbandons(t *testing.T) {
 	}
 	var abandoned bool
 	for _, w := range mt.WorkItems {
-		if w.Author != "soulrealm-runner" {
+		if w.Author != "soulstream-workloads-runner" {
 			continue
 		}
 		for _, ev := range w.Timeline {
-			if ev.Kind == "abandon" && !ev.Void && ev.Author == "soulrealm-runner" {
+			if ev.Kind == "abandon" && !ev.Void && ev.Author == "soulstream-workloads-runner" {
 				abandoned = true
 			}
 		}

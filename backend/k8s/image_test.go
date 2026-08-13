@@ -67,14 +67,14 @@ func tarLayer(t *testing.T, path string, content []byte) (v1.Layer, error) {
 
 func TestPublishLayersArtifactOnBase(t *testing.T) {
 	host, baseRef, baseLayers := testRegistry(t)
-	p := &registryPublisher{registry: host + "/soulrealm", base: baseRef}
+	p := &registryPublisher{registry: host + "/soulstream-workloads", base: baseRef}
 	artifact := append([]byte{0x7f, 'E', 'L', 'F'}, []byte("fake static binary")...)
 
-	ref, err := p.Publish(context.Background(), artifact, "soulrealm-item-1")
+	ref, err := p.Publish(context.Background(), artifact, "soulstream-workloads-item-1")
 	if err != nil {
 		t.Fatalf("publish: %v", err)
 	}
-	wantPrefix := host + "/soulrealm/workloads@sha256:"
+	wantPrefix := host + "/soulstream-workloads/workloads@sha256:"
 	if !strings.HasPrefix(ref, wantPrefix) {
 		t.Fatalf("ref = %q, want digest-pinned under %q", ref, wantPrefix)
 	}
@@ -127,7 +127,7 @@ func TestPublishLayersArtifactOnBase(t *testing.T) {
 	}
 
 	// The work-item tag names the same manifest the digest pins.
-	tagged, err := remote.Image(mustRef(t, host+"/soulrealm/workloads:soulrealm-item-1"))
+	tagged, err := remote.Image(mustRef(t, host+"/soulstream-workloads/workloads:soulstream-workloads-item-1"))
 	if err != nil {
 		t.Fatalf("pull by tag: %v", err)
 	}

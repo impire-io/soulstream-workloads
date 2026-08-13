@@ -8,7 +8,7 @@ package backend
 import (
 	"context"
 
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 // ExitStatus describes how a workload process ended. Exactly one of Code/Signal

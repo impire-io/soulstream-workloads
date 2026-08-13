@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/topic"
 	"github.com/nats-io/jwt/v2"
 	"github.com/nats-io/nkeys"
 
-	"github.com/impire-io/soulrealm/declaration"
+	"github.com/impire-io/soulstream-workloads/declaration"
 )
 
 func TestPermissionSetScope(t *testing.T) {

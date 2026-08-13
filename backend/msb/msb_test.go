@@ -10,8 +10,8 @@ import (
 
 	"github.com/nats-io/nkeys"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 // stubMsb writes a fake msb executable. Every invocation appends its argv to
@@ -99,11 +99,11 @@ func invocations(t *testing.T, logPath string) [][]string {
 // and the scratch dir.
 func TestStartArgvEnvAndReap(t *testing.T) {
 	scratch := filepath.Join(t.TempDir(), "item-42")
-	// The stub asserts from inside the run: creds visible, no SOULREALM_* in
+	// The stub asserts from inside the run: creds visible, no SOULSTREAM_* in
 	// the process env msb itself receives.
 	msbPath, logPath, marksPath := stubMsb(t,
 		"test -f "+scratch+"/nats.creds && printf 'CREDS_PRESENT\\n' >> \"$MARKS\"\n"+
-			"env | grep -q '^SOULREALM_' && printf 'ENV_LEAK\\n' >> \"$MARKS\"\nexit 0")
+			"env | grep -q '^SOULSTREAM_' && printf 'ENV_LEAK\\n' >> \"$MARKS\"\nexit 0")
 
 	b := &Backend{MsbPath: msbPath}
 	spec := testSpec(t, scratch)
@@ -135,7 +135,7 @@ func TestStartArgvEnvAndReap(t *testing.T) {
 	guestArtifact := "/artifact/" + filepath.Base(spec.Artifact)
 	wantPrefix := []string{
 		"run", "--no-tty", "--quiet",
-		"--name", "soulrealm-item-42",
+		"--name", "soulstream-workloads-item-42",
 		"-v", wantScratch + ":/scratch",
 		"--copy-file", wantArtifact + ":" + guestArtifact,
 		"-w", "/scratch",
@@ -147,11 +147,11 @@ func TestStartArgvEnvAndReap(t *testing.T) {
 		}
 	}
 	wantEnv := []string{
-		"SOULREALM_NATS_SERVERS=nats://host.microsandbox.internal:4222",
-		"SOULREALM_NATS_CREDS=/scratch/nats.creds",
-		"SOULREALM_REALM=test-realm",
-		"SOULREALM_PERSONA=researcher",
-		"SOULREALM_TOPIC=planning-ab12",
+		"SOULSTREAM_NATS_SERVERS=nats://host.microsandbox.internal:4222",
+		"SOULSTREAM_NATS_CREDS=/scratch/nats.creds",
+		"SOULSTREAM_REALM=test-realm",
+		"SOULSTREAM_PERSONA=researcher",
+		"SOULSTREAM_TOPIC=planning-ab12",
 	}
 	argvStr := strings.Join(run, "\n")
 	for _, kv := range wantEnv {
@@ -171,11 +171,11 @@ func TestStartArgvEnvAndReap(t *testing.T) {
 		t.Error("creds file was not present in scratch during the run")
 	}
 	if strings.Contains(string(marks), "ENV_LEAK") {
-		t.Error("msb process env leaked SOULREALM_* variables (must be clean)")
+		t.Error("msb process env leaked SOULSTREAM_* variables (must be clean)")
 	}
 
 	rm := invs[1]
-	wantRm := []string{"rm", "--force", "soulrealm-item-42"}
+	wantRm := []string{"rm", "--force", "soulstream-workloads-item-42"}
 	if len(rm) < 3 || rm[0] != wantRm[0] || rm[1] != wantRm[1] || rm[2] != wantRm[2] {
 		t.Fatalf("reap invocation = %v, want %v", rm, wantRm)
 	}
@@ -309,7 +309,7 @@ func TestSymlinkedPathsResolved(t *testing.T) {
 	if !strings.Contains(argvStr, "--copy-file\n"+wantArtifact+":/artifact/") {
 		t.Errorf("artifact path not resolved; argv=%v", run)
 	}
-	if !strings.Contains(argvStr, "--name\nsoulrealm-item-9") {
+	if !strings.Contains(argvStr, "--name\nsoulstream-workloads-item-9") {
 		t.Errorf("sandbox name lost the work-item id; argv=%v", run)
 	}
 }
@@ -319,9 +319,9 @@ func TestSymlinkedPathsResolved(t *testing.T) {
 
 func TestSandboxName(t *testing.T) {
 	cases := []struct{ in, want string }{
-		{"/tmp/scratch/item-42", "soulrealm-item-42"},
-		{"/tmp/scratch/It.em:42", "soulrealm-It-em-42"},
-		{"/tmp/scratch/" + strings.Repeat("a", 150), "soulrealm-" + strings.Repeat("a", 100)},
+		{"/tmp/scratch/item-42", "soulstream-workloads-item-42"},
+		{"/tmp/scratch/It.em:42", "soulstream-workloads-It-em-42"},
+		{"/tmp/scratch/" + strings.Repeat("a", 150), "soulstream-workloads-" + strings.Repeat("a", 100)},
 	}
 	for _, c := range cases {
 		if got := sandboxName(c.in); got != c.want {

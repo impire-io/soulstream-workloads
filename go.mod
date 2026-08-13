@@ -1,4 +1,4 @@
-module github.com/impire-io/soulrealm
+module github.com/impire-io/soulstream-workloads
 
 go 1.26.2
 
@@ -28,7 +28,7 @@ require (
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gowebpki/jcs v1.0.1 // indirect
-	github.com/impire-io/soulstream v0.6.0
+	github.com/impire-io/soulstream-core v0.8.0
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect

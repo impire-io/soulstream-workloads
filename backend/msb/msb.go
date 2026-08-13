@@ -3,7 +3,7 @@
 // It supervises the `msb` CLI as its child process exactly the way the native
 // backend supervises the workload itself: the guest command's exit code
 // propagates through `msb run` (measured, research D1), and terminating the
-// child stops the VM (D4). The workload sees the same SOULREALM_* env
+// child stops the VM (D4). The workload sees the same SOULSTREAM_* env
 // contract as under native — only the values adapt to the guest: the creds
 // file appears at an in-guest path and loopback NATS URLs are rewritten to
 // the host alias, reachable under the sandbox's `host`-only network policy
@@ -25,9 +25,9 @@ import (
 
 	"github.com/nats-io/jwt/v2"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/backend/natsurl"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/backend/natsurl"
 )
 
 // Defaults for the node-side backend configuration. None of these may appear
@@ -45,7 +45,7 @@ const (
 	guestScratch     = "/scratch"
 	guestCredsPath   = guestScratch + "/nats.creds"
 	guestArtifactDir = "/artifact"
-	sandboxPrefix    = "soulrealm-"
+	sandboxPrefix    = "soulstream-workloads-"
 )
 
 // stopGrace mirrors the native backend's SIGTERM→SIGKILL grace. A var so
@@ -173,8 +173,8 @@ func guestEnv(spec backend.LaunchSpec, alias string) []string {
 }
 
 // hostEnv is the environment for the msb process itself: enough to operate
-// (PATH, HOME for ~/.microsandbox) and nothing of soulrealm's own env, so no
-// soulrealm secret can leak toward the sandbox machinery (constitution II).
+// (PATH, HOME for ~/.microsandbox) and nothing of soulstream-workloads's own env, so no
+// soulstream-workloads secret can leak toward the sandbox machinery (constitution II).
 func hostEnv() []string {
 	return []string{
 		"PATH=" + os.Getenv("PATH"),

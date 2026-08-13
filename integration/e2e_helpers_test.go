@@ -13,7 +13,7 @@ import (
 
 	"github.com/nats-io/nkeys"
 
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 // buildCmdLinux builds a command for an isolated guest/pod: linux on the

@@ -1,6 +1,6 @@
 // Package native runs workloads as local OS processes — the first (reference)
 // isolation backend. It injects the workload's scoped credential through a
-// deliberately CLEAN environment: soulrealm's own process env (which may hold
+// deliberately CLEAN environment: soulstream-workloads's own process env (which may hold
 // the realm signing key) is NOT inherited by the child, so a workload sees only
 // its own scoped identity (constitution II).
 package native
@@ -19,16 +19,16 @@ import (
 
 	"github.com/nats-io/jwt/v2"
 
-	"github.com/impire-io/soulrealm/backend"
+	"github.com/impire-io/soulstream-workloads/backend"
 )
 
 // Environment variables the workload receives.
 const (
-	EnvNatsServers = "SOULREALM_NATS_SERVERS"
-	EnvCredsFile   = "SOULREALM_NATS_CREDS"
-	EnvRealm       = "SOULREALM_REALM"
-	EnvPersona     = "SOULREALM_PERSONA"
-	EnvTopic       = "SOULREALM_TOPIC"
+	EnvNatsServers = "SOULSTREAM_NATS_SERVERS"
+	EnvCredsFile   = "SOULSTREAM_NATS_CREDS"
+	EnvRealm       = "SOULSTREAM_REALM"
+	EnvPersona     = "SOULSTREAM_PERSONA"
+	EnvTopic       = "SOULSTREAM_TOPIC"
 )
 
 const stopGrace = 5 * time.Second
@@ -73,7 +73,7 @@ func (b *Backend) Start(_ context.Context, spec backend.LaunchSpec) (backend.Han
 
 // cleanEnv builds the child's environment from scratch. It carries only what a
 // workload needs — PATH/HOME for basic operation plus its scoped identity —
-// and deliberately excludes soulrealm's own process env so no soulrealm secret
+// and deliberately excludes soulstream-workloads's own process env so no soulstream-workloads secret
 // (e.g. the realm signing key) can leak into a workload.
 func cleanEnv(spec backend.LaunchSpec, credsPath string) []string {
 	return []string{

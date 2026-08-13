@@ -1,7 +1,7 @@
-// Command tool-upper is a minimal soulrealm tool — the reference `tool`
+// Command tool-upper is a minimal soulstream-workloads tool — the reference `tool`
 // workload for the M1.2 slice. It serves an uppercasing capability over
 // request-reply on its service subject (SOULSTREAM.SVC.<persona>) and runs
-// until soulrealm stops it.
+// until soulstream-workloads stops it.
 package main
 
 import (
@@ -23,11 +23,11 @@ func main() {
 }
 
 func run() error {
-	servers := os.Getenv("SOULREALM_NATS_SERVERS")
-	creds := os.Getenv("SOULREALM_NATS_CREDS")
-	persona := os.Getenv("SOULREALM_PERSONA")
+	servers := os.Getenv("SOULSTREAM_NATS_SERVERS")
+	creds := os.Getenv("SOULSTREAM_NATS_CREDS")
+	persona := os.Getenv("SOULSTREAM_PERSONA")
 	if servers == "" || persona == "" {
-		return fmt.Errorf("missing SOULREALM_NATS_SERVERS/PERSONA in environment")
+		return fmt.Errorf("missing SOULSTREAM_NATS_SERVERS/PERSONA in environment")
 	}
 
 	var opts []nats.Option
@@ -40,7 +40,7 @@ func run() error {
 	}
 	defer nc.Drain() //nolint:errcheck // best-effort on shutdown
 
-	subject := "SOULREALM.SVC." + persona
+	subject := "SOULSTREAM.SVC." + persona
 	if _, err := nc.Subscribe(subject, func(m *nats.Msg) {
 		_ = m.Respond([]byte(strings.ToUpper(string(m.Data))))
 	}); err != nil {
@@ -51,7 +51,7 @@ func run() error {
 	}
 	fmt.Println("tool-upper: serving", subject)
 
-	// Run until soulrealm stops us (SIGTERM) or Ctrl-C.
+	// Run until soulstream-workloads stops us (SIGTERM) or Ctrl-C.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 	<-ctx.Done()

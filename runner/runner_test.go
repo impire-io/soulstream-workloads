@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 type fakeTopic struct {

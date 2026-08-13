@@ -8,7 +8,7 @@ import (
 
 	"github.com/nats-io/jwt/v2"
 
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 // buildCmd builds a command from the module by import path and returns the

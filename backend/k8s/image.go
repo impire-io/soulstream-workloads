@@ -24,7 +24,7 @@ import (
 // docker-config keychain; localhost registries go over plain HTTP (the
 // kind-with-registry pattern).
 type registryPublisher struct {
-	registry string // repository prefix, e.g. "localhost:5001/soulrealm"
+	registry string // repository prefix, e.g. "localhost:5001/soulstream-workloads"
 	base     string // CA-trusted base image reference
 }
 

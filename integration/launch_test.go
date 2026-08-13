@@ -1,4 +1,4 @@
-// Package integration proves the M1.1 slice end to end: soulrealm launches a
+// Package integration proves the M1.1 slice end to end: soulstream-workloads launches a
 // real agent process that participates in a real soulstream topic, and the
 // workload's lifecycle shows up as work ops on that topic.
 package integration
@@ -12,21 +12,21 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 
-	"github.com/impire-io/soulstream/realm"
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/realm"
+	"github.com/impire-io/soulstream-core/topic"
 
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/internal/natstest"
-	"github.com/impire-io/soulrealm/minter"
-	"github.com/impire-io/soulrealm/runner"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/internal/natstest"
+	"github.com/impire-io/soulstream-workloads/minter"
+	"github.com/impire-io/soulstream-workloads/runner"
 )
 
-// TestLaunchAgentEndToEnd is SC-001 + SC-002: an agent launched by soulrealm
+// TestLaunchAgentEndToEnd is SC-001 + SC-002: an agent launched by soulstream-workloads
 // posts a turn attributed to its persona, and the runner drives an execution
 // work item to done on the same topic — all on the one control plane.
 func TestLaunchAgentEndToEnd(t *testing.T) {
-	agentPath := buildCmd(t, "github.com/impire-io/soulrealm/cmd/agent-echo")
+	agentPath := buildCmd(t, "github.com/impire-io/soulstream-workloads/cmd/agent-echo")
 
 	url, shutdown := natstest.StartJetStream(t)
 	defer shutdown()
@@ -39,7 +39,7 @@ func TestLaunchAgentEndToEnd(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestLaunchAgentEndToEnd(t *testing.T) {
 	// SC-002: an execution work item driven to done by the runner persona.
 	var doneFound bool
 	for _, w := range mt.WorkItems {
-		if w.Status == topic.WorkDone && w.Author == "soulrealm-runner" {
+		if w.Status == topic.WorkDone && w.Author == "soulstream-workloads-runner" {
 			doneFound = true
 		}
 	}

@@ -20,8 +20,8 @@ type PersonaScopedCredential struct {
 }
 
 // Minter issues per-workload scoped credentials. It is the single seam through
-// which soulrealm obtains signing authority (design 0001 §4): the default holds
-// a soulrealm-side key; an external authority could implement this later without
+// which soulstream-workloads obtains signing authority (design 0001 §4): the default holds
+// a soulstream-workloads-side key; an external authority could implement this later without
 // changing any workload contract.
 type Minter interface {
 	Mint(s Scope, ttl time.Duration) (PersonaScopedCredential, error)

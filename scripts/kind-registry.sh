@@ -10,9 +10,9 @@
 # reference works on both sides of the wall.
 set -euo pipefail
 
-CLUSTER="${SOULREALM_K8S_CLUSTER:-soulrealm-k8s}"
-REG_NAME="${SOULREALM_K8S_REG_NAME:-soulrealm-registry}"
-REG_PORT="${SOULREALM_K8S_REG_PORT:-5001}"
+CLUSTER="${SOULSTREAM_K8S_CLUSTER:-soulstream-workloads-k8s}"
+REG_NAME="${SOULSTREAM_K8S_REG_NAME:-soulstream-workloads-registry}"
+REG_PORT="${SOULSTREAM_K8S_REG_PORT:-5001}"
 
 up() {
   # 1. Local registry container (idempotent).

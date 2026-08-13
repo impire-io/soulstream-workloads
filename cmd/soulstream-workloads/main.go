@@ -1,5 +1,5 @@
-// Command soulrealm launches workloads onto a node. M1.1: a single
-// `soulrealm workload start <declaration-file>` that runs one agent.
+// Command soulstream-workloads launches workloads onto a node. M1.1: a single
+// `soulstream-workloads workload start <declaration-file>` that runs one agent.
 package main
 
 import (
@@ -11,30 +11,30 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/impire-io/soulstream/realm"
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/realm"
+	"github.com/impire-io/soulstream-core/topic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/backend/k8s"
-	"github.com/impire-io/soulrealm/backend/msb"
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/minter"
-	"github.com/impire-io/soulrealm/runner"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/backend/k8s"
+	"github.com/impire-io/soulstream-workloads/backend/msb"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/minter"
+	"github.com/impire-io/soulstream-workloads/runner"
 )
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "soulrealm:", err)
+		fmt.Fprintln(os.Stderr, "soulstream-workloads:", err)
 		os.Exit(1)
 	}
 }
 
 func run(args []string) error {
 	if len(args) != 3 || args[0] != "workload" || args[1] != "start" {
-		return fmt.Errorf("usage: soulrealm workload start <declaration-file>")
+		return fmt.Errorf("usage: soulstream-workloads workload start <declaration-file>")
 	}
 
 	data, err := os.ReadFile(args[2])
@@ -49,17 +49,17 @@ func run(args []string) error {
 		return err
 	}
 
-	realmName := os.Getenv("SOULREALM_REALM")
-	persona := os.Getenv("SOULREALM_PERSONA")
-	signingSeed := os.Getenv("SOULREALM_REALM_SIGNING_KEY")
-	rootAccount := os.Getenv("SOULREALM_ROOT_ACCOUNT")
+	realmName := os.Getenv("SOULSTREAM_REALM")
+	persona := os.Getenv("SOULSTREAM_PERSONA")
+	signingSeed := os.Getenv("SOULSTREAM_REALM_SIGNING_KEY")
+	rootAccount := os.Getenv("SOULSTREAM_ROOT_ACCOUNT")
 	if realmName == "" || persona == "" || signingSeed == "" || rootAccount == "" {
-		return fmt.Errorf("SOULREALM_REALM, SOULREALM_PERSONA, SOULREALM_REALM_SIGNING_KEY and SOULREALM_ROOT_ACCOUNT are all required")
+		return fmt.Errorf("SOULSTREAM_REALM, SOULSTREAM_PERSONA, SOULSTREAM_REALM_SIGNING_KEY and SOULSTREAM_ROOT_ACCOUNT are all required")
 	}
 
 	ctx := context.Background()
 	client, err := realm.Connect(ctx, realm.Config{
-		ContextName: os.Getenv("SOULREALM_CONTEXT"),
+		ContextName: os.Getenv("SOULSTREAM_CONTEXT"),
 		Realm:       realmName,
 		Persona:     persona,
 	})
@@ -73,7 +73,7 @@ func run(args []string) error {
 		return err
 	}
 
-	be, err := selectBackend(os.Getenv("SOULREALM_BACKEND"), os.Getenv("SOULREALM_MSB_IMAGE"))
+	be, err := selectBackend(os.Getenv("SOULSTREAM_BACKEND"), os.Getenv("SOULSTREAM_MSB_IMAGE"))
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func run(args []string) error {
 	return rw.Serve(sigCtx)
 }
 
-// selectBackend maps the node-side backend choice (SOULREALM_BACKEND) to an
+// selectBackend maps the node-side backend choice (SOULSTREAM_BACKEND) to an
 // isolation backend — the ONLY place isolation is chosen (constitution III;
 // the declaration cannot name a backend, its parser rejects unknown fields).
 // An unrecognised value fails loud before any op is published (FR-001).
@@ -111,22 +111,22 @@ func selectBackend(name, msbImage string) (backend.Backend, error) {
 	case "k8s":
 		return k8sBackendFromEnv()
 	default:
-		return nil, fmt.Errorf("SOULREALM_BACKEND %q is not a known backend (native, msb, k8s)", name)
+		return nil, fmt.Errorf("SOULSTREAM_BACKEND %q is not a known backend (native, msb, k8s)", name)
 	}
 }
 
-// k8sBackendFromEnv builds the Kubernetes backend from SOULREALM_K8S_* node
+// k8sBackendFromEnv builds the Kubernetes backend from SOULSTREAM_K8S_* node
 // configuration. The registry is required (specs/004 FR/T017); config errors
 // fail here, loud, before any op is published. Cluster access resolves via
-// client-go's standard kubeconfig loading rules, with SOULREALM_K8S_CONTEXT
+// client-go's standard kubeconfig loading rules, with SOULSTREAM_K8S_CONTEXT
 // selecting a non-default context.
 func k8sBackendFromEnv() (backend.Backend, error) {
-	registry := os.Getenv("SOULREALM_K8S_REGISTRY")
+	registry := os.Getenv("SOULSTREAM_K8S_REGISTRY")
 	if registry == "" {
-		return nil, fmt.Errorf("SOULREALM_K8S_REGISTRY is required for the k8s backend (OCI repository prefix for per-run artifact images)")
+		return nil, fmt.Errorf("SOULSTREAM_K8S_REGISTRY is required for the k8s backend (OCI repository prefix for per-run artifact images)")
 	}
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
-	overrides := &clientcmd.ConfigOverrides{CurrentContext: os.Getenv("SOULREALM_K8S_CONTEXT")}
+	overrides := &clientcmd.ConfigOverrides{CurrentContext: os.Getenv("SOULSTREAM_K8S_CONTEXT")}
 	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("k8s backend: resolve kubeconfig: %w", err)
@@ -137,10 +137,10 @@ func k8sBackendFromEnv() (backend.Backend, error) {
 	}
 	return &k8s.Backend{
 		Client:    cs,
-		Namespace: os.Getenv("SOULREALM_K8S_NAMESPACE"),
+		Namespace: os.Getenv("SOULSTREAM_K8S_NAMESPACE"),
 		Registry:  registry,
-		BaseImage: os.Getenv("SOULREALM_K8S_BASE_IMAGE"),
-		HostAlias: os.Getenv("SOULREALM_K8S_HOST_ALIAS"),
+		BaseImage: os.Getenv("SOULSTREAM_K8S_BASE_IMAGE"),
+		HostAlias: os.Getenv("SOULSTREAM_K8S_HOST_ALIAS"),
 	}, nil
 }
 
@@ -157,8 +157,8 @@ func serversOf(c *realm.Client) []string {
 }
 
 func scratchRoot() string {
-	if d := os.Getenv("SOULREALM_SCRATCH"); d != "" {
+	if d := os.Getenv("SOULSTREAM_SCRATCH"); d != "" {
 		return d
 	}
-	return filepath.Join(os.TempDir(), "soulrealm")
+	return filepath.Join(os.TempDir(), "soulstream-workloads")
 }

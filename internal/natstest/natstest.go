@@ -1,6 +1,6 @@
 // Package natstest is a test-only helper that runs an in-process NATS server
 // with JetStream enabled, so integration tests need no external server. It is
-// under internal/ because it is not part of soulrealm's public surface.
+// under internal/ because it is not part of soulstream-workloads's public surface.
 package natstest
 
 import (

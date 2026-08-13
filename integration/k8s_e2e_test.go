@@ -27,21 +27,21 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/impire-io/soulstream/realm"
-	"github.com/impire-io/soulstream/topic"
+	"github.com/impire-io/soulstream-core/realm"
+	"github.com/impire-io/soulstream-core/topic"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/backend/k8s"
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/declaration"
-	"github.com/impire-io/soulrealm/internal/natstest"
-	"github.com/impire-io/soulrealm/minter"
-	"github.com/impire-io/soulrealm/runner"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/backend/k8s"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/internal/natstest"
+	"github.com/impire-io/soulstream-workloads/minter"
+	"github.com/impire-io/soulstream-workloads/runner"
 )
 
 const (
-	k8sNamespace = "soulrealm-e2e"
-	managedBy    = "app.kubernetes.io/managed-by=soulrealm"
+	k8sNamespace = "soulstream-workloads-e2e"
+	managedBy    = "app.kubernetes.io/managed-by=soulstream-workloads"
 )
 
 func k8sEnv(name, fallback string) string {
@@ -52,10 +52,10 @@ func k8sEnv(name, fallback string) string {
 }
 
 // k8sTestBackend builds the backend against the script-provisioned cluster
-// and registry (overridable via SOULREALM_K8S_E2E_* for other environments).
+// and registry (overridable via SOULSTREAM_K8S_E2E_* for other environments).
 func k8sTestBackend(t *testing.T) *k8s.Backend {
 	t.Helper()
-	kctx := k8sEnv("SOULREALM_K8S_E2E_CONTEXT", "kind-soulrealm-k8s")
+	kctx := k8sEnv("SOULSTREAM_K8S_E2E_CONTEXT", "kind-soulstream-workloads-k8s")
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		rules, &clientcmd.ConfigOverrides{CurrentContext: kctx}).ClientConfig()
@@ -71,7 +71,7 @@ func k8sTestBackend(t *testing.T) *k8s.Backend {
 	return &k8s.Backend{
 		Client:    cs,
 		Namespace: k8sNamespace,
-		Registry:  k8sEnv("SOULREALM_K8S_E2E_REGISTRY", "localhost:5001/soulrealm"),
+		Registry:  k8sEnv("SOULSTREAM_K8S_E2E_REGISTRY", "localhost:5001/soulstream-workloads"),
 		HostAlias: detectHostAlias(t),
 	}
 }
@@ -80,13 +80,13 @@ func k8sTestBackend(t *testing.T) *k8s.Backend {
 // or Docker's host mapping as seen from the kind node.
 func detectHostAlias(t *testing.T) string {
 	t.Helper()
-	if v := os.Getenv("SOULREALM_K8S_E2E_HOST_ALIAS"); v != "" {
+	if v := os.Getenv("SOULSTREAM_K8S_E2E_HOST_ALIAS"); v != "" {
 		return v
 	}
-	node := k8sEnv("SOULREALM_K8S_E2E_NODE", "soulrealm-k8s-control-plane")
+	node := k8sEnv("SOULSTREAM_K8S_E2E_NODE", "soulstream-workloads-k8s-control-plane")
 	out, err := exec.Command("docker", "exec", node, "getent", "hosts", "host.docker.internal").Output()
 	if err != nil {
-		t.Fatalf("detect host alias via %s (set SOULREALM_K8S_E2E_HOST_ALIAS): %v", node, err)
+		t.Fatalf("detect host alias via %s (set SOULSTREAM_K8S_E2E_HOST_ALIAS): %v", node, err)
 	}
 	fields := strings.Fields(string(out))
 	if len(fields) == 0 {
@@ -142,8 +142,8 @@ func requireCleanCluster(t *testing.T, b *k8s.Backend) {
 // pod — node-side provisioning, the M1.3 convention).
 func TestK8sLaunchAgentEndToEnd(t *testing.T) {
 	artifactPath := filepath.Join(t.TempDir(), "agent-echo")
-	hostBuild := buildCmd(t, "github.com/impire-io/soulrealm/cmd/agent-echo")
-	linuxBuild := buildCmdLinux(t, "github.com/impire-io/soulrealm/cmd/agent-echo")
+	hostBuild := buildCmd(t, "github.com/impire-io/soulstream-workloads/cmd/agent-echo")
+	linuxBuild := buildCmdLinux(t, "github.com/impire-io/soulstream-workloads/cmd/agent-echo")
 	provision := func(src string) {
 		data, err := os.ReadFile(src)
 		if err != nil {
@@ -163,7 +163,7 @@ func TestK8sLaunchAgentEndToEnd(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestK8sLaunchAgentEndToEnd(t *testing.T) {
 		}
 	}
 	for _, w := range mt.WorkItems {
-		if w.Status == topic.WorkDone && w.Author == "soulrealm-runner" {
+		if w.Status == topic.WorkDone && w.Author == "soulstream-workloads-runner" {
 			done++
 		}
 	}
@@ -241,7 +241,7 @@ func TestK8sLaunchAgentEndToEnd(t *testing.T) {
 // tool INSIDE a pod — discovery by name, uppercase round trip, stop →
 // work.done, everything reaped.
 func TestK8sAgentCallsToolEndToEnd(t *testing.T) {
-	toolPath := buildCmdLinux(t, "github.com/impire-io/soulrealm/cmd/tool-upper")
+	toolPath := buildCmdLinux(t, "github.com/impire-io/soulstream-workloads/cmd/tool-upper")
 
 	url, shutdown := startNatsForPods(t)
 	defer shutdown()
@@ -252,7 +252,7 @@ func TestK8sAgentCallsToolEndToEnd(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -325,7 +325,7 @@ func TestK8sAgentCallsToolEndToEnd(t *testing.T) {
 	}
 	var doneFound bool
 	for _, w := range mt.WorkItems {
-		if w.Status == topic.WorkDone && w.Author == "soulrealm-runner" {
+		if w.Status == topic.WorkDone && w.Author == "soulstream-workloads-runner" {
 			doneFound = true
 		}
 	}
@@ -349,7 +349,7 @@ func TestK8sCrashAbandons(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -381,11 +381,11 @@ func TestK8sCrashAbandons(t *testing.T) {
 	}
 	var abandoned bool
 	for _, w := range mt.WorkItems {
-		if w.Author != "soulrealm-runner" {
+		if w.Author != "soulstream-workloads-runner" {
 			continue
 		}
 		for _, ev := range w.Timeline {
-			if ev.Kind == "abandon" && !ev.Void && ev.Author == "soulrealm-runner" {
+			if ev.Kind == "abandon" && !ev.Void && ev.Author == "soulstream-workloads-runner" {
 				abandoned = true
 			}
 		}
@@ -412,7 +412,7 @@ func TestK8sOutOfBandDeletion(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 	defer nc.Close()
-	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulrealm-runner"})
+	runnerClient, err := realm.NewClient(ctx, nc, realm.Config{Realm: "test-realm", Persona: "soulstream-workloads-runner"})
 	if err != nil {
 		t.Fatalf("runner client: %v", err)
 	}
@@ -469,7 +469,7 @@ func TestK8sOutOfBandDeletion(t *testing.T) {
 	var abandoned bool
 	for _, w := range mt.WorkItems {
 		for _, ev := range w.Timeline {
-			if ev.Kind == "abandon" && !ev.Void && ev.Author == "soulrealm-runner" {
+			if ev.Kind == "abandon" && !ev.Void && ev.Author == "soulstream-workloads-runner" {
 				abandoned = true
 			}
 		}
@@ -513,7 +513,7 @@ func TestK8sScopeEnforcedFromPod(t *testing.T) {
 	}
 
 	// Control arm: the identical probe, natively (no rewrite, loopback).
-	hostProbe := buildCmd(t, "github.com/impire-io/soulrealm/cmd/scope-probe")
+	hostProbe := buildCmd(t, "github.com/impire-io/soulstream-workloads/cmd/scope-probe")
 	nh, err := native.New().Start(ctx, spec(hostProbe, filepath.Join(t.TempDir(), "n")))
 	if err != nil {
 		t.Fatalf("native start: %v", err)
@@ -524,7 +524,7 @@ func TestK8sScopeEnforcedFromPod(t *testing.T) {
 
 	// The bar: the same probe from inside a pod, credential via Secret, the
 	// operator server reached through the host alias.
-	linuxProbe := buildCmdLinux(t, "github.com/impire-io/soulrealm/cmd/scope-probe")
+	linuxProbe := buildCmdLinux(t, "github.com/impire-io/soulstream-workloads/cmd/scope-probe")
 	b := k8sTestBackend(t)
 	kh, err := b.Start(ctx, spec(linuxProbe, filepath.Join(t.TempDir(), "probe-scope")))
 	if err != nil {

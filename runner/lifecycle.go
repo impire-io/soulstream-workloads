@@ -5,7 +5,7 @@
 // single control plane (constitution V).
 package runner
 
-import "github.com/impire-io/soulrealm/backend"
+import "github.com/impire-io/soulstream-workloads/backend"
 
 // Terminal is the terminal work op for a finished workload.
 type Terminal int

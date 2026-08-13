@@ -16,9 +16,9 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/impire-io/soulrealm/backend"
-	"github.com/impire-io/soulrealm/backend/native"
-	"github.com/impire-io/soulrealm/minter"
+	"github.com/impire-io/soulstream-workloads/backend"
+	"github.com/impire-io/soulstream-workloads/backend/native"
+	"github.com/impire-io/soulstream-workloads/minter"
 )
 
 const testNS = "test-ns"
@@ -43,7 +43,7 @@ func (s *stubPublisher) Publish(_ context.Context, artifact []byte, tag string) 
 	if s.fail {
 		return "", context.DeadlineExceeded
 	}
-	return "reg.test/soulrealm/workloads@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", nil
+	return "reg.test/soulstream-workloads/workloads@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", nil
 }
 
 // testCred mints a real scoped credential from a throwaway account — no
@@ -100,7 +100,7 @@ func newTestBackend(cs *fake.Clientset, stub *stubPublisher) *Backend {
 	return &Backend{
 		Client:    cs,
 		Namespace: testNS,
-		Registry:  "reg.test/soulrealm",
+		Registry:  "reg.test/soulstream-workloads",
 		HostAlias: "node.test.internal",
 		Images:    stub,
 	}
@@ -149,7 +149,7 @@ func TestStartShapesPodAndSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	const wantName = "soulrealm-item-42" // sanitized RFC 1123 from Item.42
+	const wantName = "soulstream-workloads-item-42" // sanitized RFC 1123 from Item.42
 
 	// The Secret: creds-file bytes under the pod's name, labeled.
 	sec, err := cs.CoreV1().Secrets(testNS).Get(context.Background(), wantName, metav1.GetOptions{})
@@ -185,7 +185,7 @@ func TestStartShapesPodAndSecret(t *testing.T) {
 		t.Fatalf("containers = %d, want 1", len(p.Spec.Containers))
 	}
 	c := p.Spec.Containers[0]
-	if c.Image != "reg.test/soulrealm/workloads@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" {
+	if c.Image != "reg.test/soulstream-workloads/workloads@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" {
 		t.Errorf("image = %q, want the digest-pinned publisher ref", c.Image)
 	}
 	if strings.Join(c.Command, " ") != guestWorkload+" --flag value" {
@@ -276,13 +276,13 @@ func TestRoutableServersPassThroughUnrewritten(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	p, _ := cs.CoreV1().Pods(testNS).Get(context.Background(), "soulrealm-item-42", metav1.GetOptions{})
+	p, _ := cs.CoreV1().Pods(testNS).Get(context.Background(), "soulstream-workloads-item-42", metav1.GetOptions{})
 	for _, e := range p.Spec.Containers[0].Env {
 		if e.Name == native.EnvNatsServers && e.Value != "tls://connect.example.com" {
 			t.Errorf("routable server rewritten: %q", e.Value)
 		}
 	}
-	finishPod(t, cs, "soulrealm-item-42", corev1.PodSucceeded,
+	finishPod(t, cs, "soulstream-workloads-item-42", corev1.PodSucceeded,
 		&corev1.ContainerStateTerminated{ExitCode: 0})
 	h.Wait()
 	requireClean(t, cs)
@@ -307,7 +307,7 @@ func TestCrashMapsExitCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	finishPod(t, cs, "soulrealm-item-42", corev1.PodFailed,
+	finishPod(t, cs, "soulstream-workloads-item-42", corev1.PodFailed,
 		&corev1.ContainerStateTerminated{ExitCode: 3, Reason: "Error"})
 	if st := h.Wait(); st.Code != 3 || st.Signal != "" {
 		t.Fatalf("Wait = %+v, want Code 3", st)
@@ -325,7 +325,7 @@ func TestStopDerivesGraceFromContext(t *testing.T) {
 
 	// Terminal state first (the kubelet would produce 137 after the grace),
 	// then Stop with a 2s deadline: the issued grace must be ≤ 2.
-	finishPod(t, cs, "soulrealm-item-42", corev1.PodFailed,
+	finishPod(t, cs, "soulstream-workloads-item-42", corev1.PodFailed,
 		&corev1.ContainerStateTerminated{ExitCode: 137, Reason: "Error"})
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -358,7 +358,7 @@ func TestOutOfBandDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
-	if err := cs.CoreV1().Pods(testNS).Delete(context.Background(), "soulrealm-item-42", metav1.DeleteOptions{}); err != nil {
+	if err := cs.CoreV1().Pods(testNS).Delete(context.Background(), "soulstream-workloads-item-42", metav1.DeleteOptions{}); err != nil {
 		t.Fatalf("out-of-band delete: %v", err)
 	}
 	if st := h.Wait(); st.Code != -1 || st.Signal != "" {
@@ -389,10 +389,10 @@ func TestMapExit(t *testing.T) {
 
 func TestPodName(t *testing.T) {
 	cases := []struct{ in, want string }{
-		{"/tmp/scratch/item-42", "soulrealm-item-42"},
-		{"/tmp/scratch/It.em:42", "soulrealm-it-em-42"},
-		{"/tmp/scratch/--weird--", "soulrealm-weird"},
-		{"/tmp/scratch/" + strings.Repeat("A", 150), "soulrealm-" + strings.Repeat("a", 50)},
+		{"/tmp/scratch/item-42", "soulstream-workloads-item-42"},
+		{"/tmp/scratch/It.em:42", "soulstream-workloads-it-em-42"},
+		{"/tmp/scratch/--weird--", "soulstream-workloads-weird"},
+		{"/tmp/scratch/" + strings.Repeat("A", 150), "soulstream-workloads-" + strings.Repeat("a", 50)},
 	}
 	for _, c := range cases {
 		if got := podName(c.in); got != c.want {
