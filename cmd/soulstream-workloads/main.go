@@ -1,10 +1,13 @@
-// Command soulstream-workloads launches workloads onto a node. M1.1: a single
-// `soulstream-workloads workload start <declaration-file>` that runs one agent.
+// Command soulstream-workloads runs the workload plane's two arms on a node:
+// `workload start <declaration-file>` launches one workload (M1.1), and
+// `waker serve <config-file>` stands the trigger arm up — the durable
+// consumers that wake registered agents when they are mentioned (M3.2).
 package main
 
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +16,7 @@ import (
 
 	"github.com/impire-io/soulstream-core/realm"
 	"github.com/impire-io/soulstream-core/topic"
+	siclient "github.com/impire-io/soulstream-identity/client"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -23,6 +27,7 @@ import (
 	"github.com/impire-io/soulstream-workloads/declaration"
 	"github.com/impire-io/soulstream-workloads/minter"
 	"github.com/impire-io/soulstream-workloads/runner"
+	"github.com/impire-io/soulstream-workloads/waker"
 )
 
 func main() {
@@ -33,11 +38,18 @@ func main() {
 }
 
 func run(args []string) error {
-	if len(args) != 3 || args[0] != "workload" || args[1] != "start" {
-		return fmt.Errorf("usage: soulstream-workloads workload start <declaration-file>")
+	switch {
+	case len(args) == 3 && args[0] == "workload" && args[1] == "start":
+		return runWorkloadStart(args[2])
+	case len(args) == 3 && args[0] == "waker" && args[1] == "serve":
+		return runWakerServe(args[2])
+	default:
+		return fmt.Errorf("usage: soulstream-workloads workload start <declaration-file> | soulstream-workloads waker serve <config-file>")
 	}
+}
 
-	data, err := os.ReadFile(args[2])
+func runWorkloadStart(file string) error {
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("read declaration: %w", err)
 	}
@@ -96,6 +108,56 @@ func run(args []string) error {
 	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	return rw.Serve(sigCtx)
+}
+
+// runWakerServe stands the trigger arm up: load the registration file,
+// connect as the waker's own persona, and serve wakes until signalled. The
+// standing daemon logs through slog (the repo's stated precedent for exactly
+// this: refused wakes are deliberately op-less and must be visible somewhere).
+func runWakerServe(file string) error {
+	cfg, err := waker.Load(file)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	client, err := realm.Connect(ctx, realm.Config{
+		ContextName: cfg.Waker.Context,
+		Realm:       cfg.Waker.Realm,
+		Persona:     cfg.Waker.Persona,
+	})
+	if err != nil {
+		return fmt.Errorf("connect to realm: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	w := &waker.Waker{
+		Config: cfg,
+		Client: client,
+		Log:    slog.New(slog.NewTextHandler(os.Stderr, nil)),
+	}
+	if anyEphemeral(cfg) {
+		// The identity plane's client satisfies EphemeralMinter structurally;
+		// it rides the waker's own connection and principal.
+		p := cfg.Waker.IdentityPlane
+		w.Minter = siclient.New(client.Conn(), p.Account, p.User)
+	}
+
+	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	err = w.Serve(sigCtx)
+	if err == context.Canceled {
+		return nil
+	}
+	return err
+}
+
+func anyEphemeral(cfg waker.Config) bool {
+	for _, r := range cfg.Agents {
+		if r.EphemeralLane() {
+			return true
+		}
+	}
+	return false
 }
 
 // selectBackend maps the node-side backend choice (SOULSTREAM_BACKEND) to an

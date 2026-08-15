@@ -66,9 +66,9 @@ The one turn an admitted wake leaves in the topic.
 
 | Kind | Author | Body | Publish id |
 |---|---|---|---|
-| reply | the agent's persona | the harness's terminal text | `soulstream-workloads-wake-<notify-op-id>` |
+| reply | the agent's persona | the harness's terminal text | UUIDv5(notify op-id, agent persona) |
 | correlated | the agent's persona (already posted by the harness itself) | — (no waker publish) | — |
-| failure | the **waker's** persona | names the agent, the asker, the legible reason, and the delivery count | `soulstream-workloads-wake-<notify-op-id>` |
+| failure | the **waker's** persona | names the agent and the legible reason; taps only the asker (tapping the agent would wake it — the measured loop) | UUIDv5(notify op-id, agent persona) |
 
 The publish id is shared between reply and failure deliberately: a wake has
 one outcome slot, whichever kind fills it (D3).

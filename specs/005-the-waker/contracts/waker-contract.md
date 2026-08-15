@@ -64,8 +64,9 @@ Rules:
   `run_timeout`). Both present or both absent is a load error.
 - `template.terminal` is required; a template without a machine-readable
   terminal mapping is refused at load. Placeholders: `{{PROMPT}}`,
-  `{{MCP_CONFIG}}`, `{{RUN_DIR}}` in `command`; `{{PERSONA}}`,
-  `{{TOPIC}}`, `{{AUTHOR}}`, `{{OP_ID}}`, `{{BODY}}` in `prompt`.
+  `{{TOPIC}}`, `{{MCP_CONFIG}}`, `{{RUN_DIR}}` in `command`;
+  `{{PERSONA}}`, `{{TOPIC}}`, `{{AUTHOR}}`, `{{OP_ID}}`, `{{BODY}}` in
+  `prompt`.
 - `mcp_command` empty ⇒ no MCP config is generated (a harness may act
   through nothing but its reply).
 - Durations are Go syntax (`"150s"`). Defaults: `max_deliver` 2,
@@ -84,15 +85,24 @@ Rules:
    refused (long delay), unreachable (short delay), retry-budget
    remaining (retry delay).
 3. **One outcome slot per wake**: the outcome op id is UUIDv5 of the
-   notify op-id, shared by reply and failure. Within the record's
-   2-minute duplicate window the id dedupes server-side; beyond it, the
-   pre-check on `NumDelivered > 1` (materialise, find the id) closes the
+   notify op-id **and the agent persona** (one mention can tap several
+   registered agents; a wake is one delivery to one agent), shared by
+   reply and failure. Within the record's 2-minute duplicate window the
+   id dedupes server-side; beyond it, the pre-check on
+   `NumDelivered > 1` (materialise, find the id) closes the
    crash-after-post window. Exactly one op per admitted wake, at any
-   redelivery distance.
+   redelivery distance. The waker's guarantee covers the waker's posts;
+   a harness that posts its own reply carries its own idempotency — a
+   named limitation, not a hidden one.
 4. **Authorship is mechanical**: replies post through a client bound to
    the agent's persona; failure testimony posts through the waker's own
-   client, mentioning the agent and the asker. There is no code path
-   that posts as a persona other than its client's.
+   client, **naming** the agent in the body and **tapping only the
+   asker**. Tapping the agent would notify it — and a notify to a
+   registered agent is a wake: the hermetic gate measured that loop
+   (failure turn → notify → wake → failure turn, forever) before this
+   rule existed. Relatedly, a mention **authored by the agent itself**
+   never wakes it (the self-loop guard). There is no code path that
+   posts as a persona other than its client's.
 5. **Refused wakes are silent on the record and loud in the log**: no op
    of any kind (the agent cannot speak; the waker must not speak for
    it), a structured log line always.

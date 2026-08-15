@@ -12,7 +12,7 @@ need standing regression guards.
 
 ## Phase 1: Setup (cross-repo prerequisite + dependencies)
 
-- [ ] T001 **Core v0.8.3 (in `../soulstream-core`)**: add
+- [x] T001 **Core v0.8.3 (in `../soulstream-core`)**: add
   `Handle.PostTurnIdempotent(ctx, body string, mentions []string, opID
   string) (string, error)` to `topic/post.go`, riding `publishOpWith`'s
   existing preset-id arm (research D7); unit test in the
@@ -21,24 +21,29 @@ need standing regression guards.
   signed annotated tag `v0.8.3`. **Pushing core + the tag is the
   operator's act and must precede workloads CI** — local development
   rides T002's workspace.
-- [ ] T002 Workloads dependency wiring: create **untracked** `go.work`
+- [x] T002 Workloads dependency wiring: create **untracked** `go.work`
   (`.` + `../soulstream-core`) — never committed (episode 0037's
-  co-development pattern); `go mod edit -require
-  github.com/impire-io/soulstream-core@v0.8.3`; `go get
+  co-development pattern); `go get
   github.com/impire-io/soulstream-identity@v0.2.0` and
   `github.com/google/uuid` (direct require for UUIDv5); build green in
-  workspace mode.
+  workspace mode. *Amended during execution `[measured]`: workspace
+  builds still read the go.mod of the version go.mod names (graph
+  pruning), so an unpushed v0.8.3 pin breaks even workspace builds —
+  go.mod stays at the published v0.8.0 during the branch (the workspace
+  supplies v0.8.3's code) and the landing commit (T020) flips the pin
+  to v0.8.3, after which the operator's push order (core + tag before
+  workloads) makes CI whole.*
 
 ## Phase 2: Foundational (blocking prerequisites)
 
-- [ ] T003 [P] `waker/registration.go` + `registration_test.go`: `Config`
+- [x] T003 [P] `waker/registration.go` + `registration_test.go`: `Config`
   (waker identity block + `[]Registration`), `Registration`, `Template`,
   `TerminalMap`; strict JSON load (`DisallowUnknownFields`, the
   declaration precedent); validation per contracts/waker-contract.md —
   exactly one credential lane, terminal mapping required, duration
   parsing, defaults (`max_deliver` 2, `run_timeout` 150s). Table tests in
   the `declaration_test.go` style.
-- [ ] T004 [P] `waker/correlate.go` + `correlate_test.go` (PURE, the
+- [x] T004 [P] `waker/correlate.go` + `correlate_test.go` (PURE, the
   `lifecycle.go` analog): `WakeOpID(notifyOpID) string` (UUIDv5, fixed
   namespace); `PostedDuringRun(before, after []Turn, persona) (string,
   bool)` set difference; `OutcomeFound(view []Turn, wakeOpID) bool` for
@@ -46,14 +51,14 @@ need standing regression guards.
   error status / no terminal / empty text). Regression cases from the
   measured trap: several mentions one topic; earlier reply must not
   satisfy a later wake.
-- [ ] T005 [P] `waker/harness.go` + `harness_test.go`: placeholder fill,
+- [x] T005 [P] `waker/harness.go` + `harness_test.go`: placeholder fill,
   fresh run dir under scratch, generated MCP config file (0600),
   `SOULSTREAM_*`-scrubbed child env, stdin closed, `Setpgid` +
   process-group SIGKILL on deadline, JSONL parse with dot-path
   terminal-event extraction. Table tests over both measured grammars
   (flat `type:result`, nested `msg.type:task_complete`), timeout, died,
   no-terminal, error-subtype, empty-text.
-- [ ] T006 [P] `cmd/harness-mock/main.go` (reference-workload style):
+- [x] T006 [P] `cmd/harness-mock/main.go` (reference-workload style):
   flags `--grammar claude|codex`, `--reply <text>`, `--mode
   ok|die|hang|self-post`; `self-post` posts a turn as the agent through
   core (env contract) mid-run then emits a self-referential terminal —
@@ -61,7 +66,7 @@ need standing regression guards.
 
 ## Phase 3: User Story 1 — a mention wakes an agent that isn't running (P1) 🎯 MVP
 
-- [ ] T007 [US1] `waker/wake.go`: the per-delivery protocol over injected
+- [x] T007 [US1] `waker/wake.go`: the per-delivery protocol over injected
   narrow interfaces (`Prober`, `TopicReader` for materialise,
   `AgentPoster`/`WakerPoster`, `Invoker`): redelivery pre-check
   (`NumDelivered > 1` → `OutcomeFound` → ack), probe (refused/unreachable
@@ -70,23 +75,23 @@ need standing regression guards.
   `PostTurnIdempotent(text, nil, wakeOpID)`, ack strictly after; nak
   classes with distinct delays; discharge on `context.WithoutCancel`
   (the `runner.Running.base` pattern).
-- [ ] T008 [US1] `waker/waker.go`: package doc (constitutional why);
+- [x] T008 [US1] `waker/waker.go`: package doc (constitutional why);
   `Waker.Serve(ctx)` — per registration `CreateOrUpdateConsumer` on
   `realm.NotifyStreamName` filtered `topic.NotifySubject(persona)`,
   AckExplicit, `AckWait = run_timeout + margin`, no server MaxDeliver;
   fetch loop per consumer goroutine; `log/slog` events (research D8):
   wake, refused, outcome, retry.
-- [ ] T009 [P] [US1] `waker/waker_test.go` + `wake_test.go`:
+- [x] T009 [P] [US1] `waker/waker_test.go` + `wake_test.go`:
   call-sequence fakes (`runner_test.go` style) proving
   `probe,invoke,post,ack` (happy), `probe,nak` (refused — no invoke, no
   post), non-mention type → `ack` only, mint-fails → nak unreachable
   class.
-- [ ] T010 [US1] `cmd/soulstream-workloads/main.go`: replace the rigid arg check
+- [x] T010 [US1] `cmd/soulstream-workloads/main.go`: replace the rigid arg check
   with a switch — `workload start <file>` unchanged, `waker serve
   <config-file>` new; config load + connect (waker context via
   `realm.Connect`); pure `wakerFromConfig` function; extend
   `main_test.go` for dispatch and config mapping.
-- [ ] T011 [US1] `integration/waker_test.go` — hermetic SC-001:
+- [x] T011 [US1] `integration/waker_test.go` — hermetic SC-001:
   `StartJetStream` + `Provision` + `StartTopic`; post a mention **before**
   the waker starts (the address-outlives-process premise); run the waker
   with a claude-grammar `harness-mock`; assert exactly one reply turn
@@ -97,31 +102,31 @@ need standing regression guards.
 
 ## Phase 4: User Story 2 — the conversation always learns the outcome (P2)
 
-- [ ] T012 [US2] Integration faults in `integration/waker_test.go`:
+- [x] T012 [US2] Integration faults in `integration/waker_test.go`:
   `--mode die` (budget 2 → exactly one failure turn authored by the
   *waker's* persona, body naming agent + asker + reason);
   `--mode hang` with short `run_timeout` (same single-failure
   invariant); `--mode self-post` (exactly one turn — the mock's own; the
   waker posts nothing). After each: consumer info shows zero
   unprocessed, zero pending.
-- [ ] T013 [P] [US2] Unit: redelivery pre-check — fake reader returns a
+- [x] T013 [P] [US2] Unit: redelivery pre-check — fake reader returns a
   view already containing the wake op-id, `NumDelivered=2` → sequence is
   `ack` alone (no probe, no invoke).
 
 ## Phase 5: User Story 3 — address outlives process; revocation bites (P3)
 
-- [ ] T014 [US3] Integration backlog: three mentions in **one** topic
+- [x] T014 [US3] Integration backlog: three mentions in **one** topic
   posted with no waker running; start waker; assert three distinct
   replies (the measured multi-mention regression) and zero remaining
   deliveries.
-- [ ] T015 [US3] Probe classes: hermetic operator-mode test
+- [x] T015 [US3] Probe classes: hermetic operator-mode test
   (`natstest.StartOperator`) — probe with a wrong credential is the
   refused class (nak-long, no op, no invoke); unit test maps transport
   failure to unreachable (nak-short). (Full token-lane revocation → 2ms
   refusal was measured on the product stack in research; the waker's
   contract here is class behavior, and the opt-in T018 path exercises
   the real lane.)
-- [ ] T016 [US3] Ephemeral lane: `EphemeralMinter` narrow interface in
+- [x] T016 [US3] Ephemeral lane: `EphemeralMinter` narrow interface in
   `waker/` (`MintEphemeral(role, user, pub, ttl, tags)`), lane selection
   in `wake.go` (mint → local nkey → creds file in run dir → probe/post
   through it); fake-backed unit tests; real
@@ -130,18 +135,18 @@ need standing regression guards.
 
 ## Phase 6: User Story 4 — a new harness is configuration (P4)
 
-- [ ] T017 [US4] Integration: same waker process, second registration
+- [x] T017 [US4] Integration: same waker process, second registration
   with the codex-grammar template (`--grammar codex`); mention both
   agents; each replies through its own grammar — one binary, two
   grammars, template-only difference (SC-004's regression guard).
 
 ## Phase 7: Polish & landing
 
-- [ ] T018 [P] `Makefile` `test-wake` opt-in target (build tag
+- [x] T018 [P] `Makefile` `test-wake` opt-in target (build tag
   `wake_e2e`): real `claude -p` against a local realm per
   quickstart §3 — requires operator harness + auth, stays out of the
   hermetic gate.
-- [ ] T019 [P] Docs duty (S3): README waker section (what it is, the
+- [x] T019 [P] Docs duty (S3): README waker section (what it is, the
   registration file, the two lanes, the bounded backlog); verify
   quickstart.md by hand against the built binary.
 - [ ] T020 Full gate green in workspace mode (`make fmt && make test &&

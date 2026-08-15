@@ -124,10 +124,14 @@ D3 therefore names a **cross-repo prerequisite**: soulstream-core exports
 the public arm of the library duty the extensions design already lists
 ("idempotent publish via `Nats-Msg-Id`, retry-with-same-id") — riding the
 existing preset-id machinery, purely additive, tagged v0.8.3. The wake's
-outcome id is a **UUIDv5 derived from the notify op-id**, staying in the
-id shape every reader already handles; the beyond-window redelivery
-pre-check (D3.2) becomes "materialise and look for that op-id among the
-persona's contributions" — no raw header scanning.
+outcome id is a **UUIDv5 derived from the notify op-id and the agent
+persona** — one mention can tap several registered agents, and a wake is
+one delivery *to one agent*; hashing the notify op alone made two agents'
+outcomes dedupe into a single turn `[measured, the multi-agent gate
+test]`. The id stays in the shape every reader already handles; the
+beyond-window redelivery pre-check (D3.2) becomes "materialise and look
+for that op-id among the persona's contributions" — no raw header
+scanning.
 
 ## D8 — The waker introduces slog, and says so
 

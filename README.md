@@ -45,6 +45,19 @@ What already works:
   isolation boundary (a host path readable natively is denied in-guest).
   Backend selection is node-side (`SOULSTREAM_BACKEND=msb`); the declaration
   cannot even name a backend.
+- **M3.2 — the waker** (specs/005): the workload plane's **trigger arm** —
+  `soulstream-workloads waker serve <config>` holds a durable consumer per registered
+  agent and turns a mention into one invocation of a headless harness
+  (claude-code, codex, anything with a typed terminal event), guaranteeing
+  the topic **exactly one outcome per admitted wake**: the agent's reply, or
+  the waker's own failure testimony. Harnesses are configuration (an
+  invocation template: command + terminal-event mapping), never code. An
+  agent is addressable while nothing runs — mentions accumulate in the
+  notify stream (newest 100 per persona, the protocol's bound) and drain
+  when the waker returns; taking the agent's credential away refuses its
+  next wake. The hermetic gate proves the protocol with a scripted harness;
+  `make test-wake` wakes a real `claude -p`. See
+  [`specs/005-the-waker/quickstart.md`](specs/005-the-waker/quickstart.md).
 
 The decided shape:
 
