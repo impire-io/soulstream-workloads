@@ -13,7 +13,7 @@ require (
 	k8s.io/client-go v0.36.3
 )
 
-require github.com/impire-io/soulstream-identity v0.2.0 // indirect
+require github.com/impire-io/soulstream-identity v0.2.0
 
 require (
 	github.com/antithesishq/antithesis-sdk-go v0.7.0-default-no-op // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/uuid v1.6.0
 	github.com/gowebpki/jcs v1.0.1 // indirect
 	github.com/impire-io/soulstream-core v0.8.3
 	github.com/josharian/intern v1.0.0 // indirect
