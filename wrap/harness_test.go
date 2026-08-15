@@ -1,4 +1,4 @@
-package waker
+package wrap
 
 import (
 	"context"
@@ -98,21 +98,22 @@ func TestTimeoutKillsProcessGroup(t *testing.T) {
 	}
 }
 
-// The child environment carries no SOULSTREAM_* from the waker's host —
-// the operator's own realm configuration cannot leak into a harness.
-func TestChildEnvironmentIsSanitized(t *testing.T) {
-	t.Setenv("SOULSTREAM_CONTEXT", "the-operators-own")
-	tpl := shTemplate(`echo "{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"env=$SOULSTREAM_CONTEXT\"}"`, claudeMap())
+// The child environment carries no SOULSTREAM_* from the host — the person's
+// own realm configuration cannot leak into a harness — while the template's
+// own env block IS applied: the lane for a per-agent provider credential.
+func TestChildEnvironment(t *testing.T) {
+	t.Setenv("SOULSTREAM_CONTEXT", "the-persons-own")
+	tpl := shTemplate(`echo "{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"realm=$SOULSTREAM_CONTEXT key=$FAKE_PROVIDER_KEY\"}"`, claudeMap())
+	tpl.Env = map[string]string{"FAKE_PROVIDER_KEY": "per-agent"}
 	res := run(t, tpl, 10*time.Second)
-	if !res.OK || res.Text != "env=" {
-		t.Fatalf("result = %+v, want the variable scrubbed", res)
+	if !res.OK || res.Text != "realm= key=per-agent" {
+		t.Fatalf("result = %+v, want the realm variable scrubbed and the template env applied", res)
 	}
 }
 
-// The generated MCP config carries the template env with the run's overlay
-// applied, and an empty overlay value deletes the key (the ephemeral lane
-// clears the token this way).
-func TestMCPConfigOverlay(t *testing.T) {
+// The generated MCP config carries the template's tool-door block, 0600 —
+// it may hold a credential.
+func TestMCPConfigFromTemplate(t *testing.T) {
 	dir := t.TempDir()
 	spec := RunSpec{
 		Template: Template{
@@ -121,14 +122,13 @@ func TestMCPConfigOverlay(t *testing.T) {
 			Terminal:   claudeMap(),
 			MCPCommand: "soulstream-mcp",
 			MCPEnv: map[string]string{
-				"SOULSTREAM_TOKEN": "sit_static",
+				"SOULSTREAM_TOKEN": "sit_deadbeef",
 				"SOULSTREAM_REALM": "acme",
 			},
 		},
-		Prompt:     "p",
-		RunDir:     filepath.Join(dir, "run"),
-		Timeout:    10 * time.Second,
-		MCPOverlay: map[string]string{"SOULSTREAM_CREDS": "/run/run.creds", "SOULSTREAM_TOKEN": ""},
+		Prompt:  "p",
+		RunDir:  filepath.Join(dir, "run"),
+		Timeout: 10 * time.Second,
 	}
 	_ = RunHarness(context.Background(), spec)
 	raw, err := os.ReadFile(filepath.Join(spec.RunDir, "mcp.json"))
@@ -136,11 +136,8 @@ func TestMCPConfigOverlay(t *testing.T) {
 		t.Fatalf("mcp config: %v", err)
 	}
 	s := string(raw)
-	if !strings.Contains(s, "/run/run.creds") || !strings.Contains(s, "acme") {
-		t.Fatalf("mcp config missing overlay or static env:\n%s", s)
-	}
-	if strings.Contains(s, "sit_static") {
-		t.Fatalf("cleared token survived into the mcp config:\n%s", s)
+	if !strings.Contains(s, "sit_deadbeef") || !strings.Contains(s, "acme") || !strings.Contains(s, "soulstream-mcp") {
+		t.Fatalf("mcp config missing template values:\n%s", s)
 	}
 	info, err := os.Stat(filepath.Join(spec.RunDir, "mcp.json"))
 	if err != nil || info.Mode().Perm() != 0o600 {

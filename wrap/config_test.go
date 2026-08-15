@@ -1,0 +1,90 @@
+package wrap
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// The claude preset derives its MCP environment from the wrapper's own lane
+// — the common case authors nothing: the same values that admitted the
+// wrapper admit its harness's tool door.
+func TestClaudePresetDerivesMCPFromLane(t *testing.T) {
+	tpl, err := Preset("claude", Lane{
+		URL: "nats://h:4222", CredsFile: "/s/sentinel.creds", Token: "sit_x",
+		Realm: "home", Persona: "clerk",
+	})
+	if err != nil {
+		t.Fatalf("preset: %v", err)
+	}
+	if err := tpl.Validate(); err != nil {
+		t.Fatalf("preset template invalid: %v", err)
+	}
+	if tpl.MCPCommand != "soulstream-mcp" {
+		t.Fatalf("mcp command = %q", tpl.MCPCommand)
+	}
+	for k, want := range map[string]string{
+		"SOULSTREAM_URL": "nats://h:4222", "SOULSTREAM_CREDS": "/s/sentinel.creds",
+		"SOULSTREAM_TOKEN": "sit_x", "SOULSTREAM_REALM": "home", "SOULSTREAM_PERSONA": "clerk",
+	} {
+		if tpl.MCPEnv[k] != want {
+			t.Fatalf("mcp env %s = %q, want %q", k, tpl.MCPEnv[k], want)
+		}
+	}
+}
+
+// The codex preset owns the envelope alone (its MCP config is its own global
+// file); an unknown name is refused with the two that exist.
+func TestCodexPresetAndUnknown(t *testing.T) {
+	tpl, err := Preset("codex", Lane{Persona: "clerk"})
+	if err != nil || tpl.MCPCommand != "" {
+		t.Fatalf("codex preset = %+v, %v", tpl, err)
+	}
+	if tpl.Terminal.TypeField != "msg.type" {
+		t.Fatalf("codex terminal = %+v", tpl.Terminal)
+	}
+	if _, err := Preset("mystery", Lane{}); err == nil || !strings.Contains(err.Error(), "claude, codex") {
+		t.Fatalf("unknown preset err = %v", err)
+	}
+}
+
+// Template files keep the specs/005 refusal rules: strict decode, required
+// terminal mapping, paired status fields.
+func TestLoadTemplateRefusals(t *testing.T) {
+	write := func(t *testing.T, body string) string {
+		t.Helper()
+		p := filepath.Join(t.TempDir(), "tpl.json")
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	cases := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"unknown field", `{"command":["x"],"prompt":"p","surprise":1,
+			"terminal":{"type_field":"t","terminal_value":"v","text_field":"x"}}`, "unknown field"},
+		{"no terminal", `{"command":["x"],"prompt":"p","terminal":{"type_field":"t"}}`,
+			"machine-readable terminal event"},
+		{"half status", `{"command":["x"],"prompt":"p",
+			"terminal":{"type_field":"t","terminal_value":"v","text_field":"x","status_field":"s"}}`,
+			"come together"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := LoadTemplate(write(t, tc.body))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want it to mention %q", err, tc.want)
+			}
+		})
+	}
+	good := write(t, `{"command":["x","{{PROMPT}}"],"prompt":"p","env":{"K":"v"},
+		"terminal":{"type_field":"t","terminal_value":"v","text_field":"x"}}`)
+	tpl, err := LoadTemplate(good)
+	if err != nil || tpl.Env["K"] != "v" {
+		t.Fatalf("good template = %+v, %v", tpl, err)
+	}
+}

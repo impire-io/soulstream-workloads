@@ -13,8 +13,6 @@ require (
 	k8s.io/client-go v0.36.3
 )
 
-require github.com/impire-io/soulstream-identity v0.2.0
-
 require (
 	github.com/antithesishq/antithesis-sdk-go v0.7.0-default-no-op // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
