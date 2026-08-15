@@ -1,16 +1,7 @@
-// Package waker is the workload plane's trigger arm: it turns a mention of a
-// registered agent into one invocation of a headless harness, and guarantees
-// the topic exactly one outcome per admitted wake. It exists because an agent
-// should be addressable like a person whether or not a process is running —
-// the runner launches workloads someone asked for; the waker answers for
-// personas someone spoke to. It is a consumer and a client of the record,
-// never a second control plane, and it stores nothing durable: registrations
-// are operator configuration, run directories are scratch, and every fact
-// worth keeping is an op in a topic.
-//
+package wrap
+
 // This file is the pure half (the lifecycle.go pattern): wake identity and
-// outcome correlation, no I/O.
-package waker
+// outcome correlation, no I/O. The package doc lives in wrap.go.
 
 import "github.com/google/uuid"
 

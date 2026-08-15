@@ -1,4 +1,4 @@
-package waker
+package wrap
 
 import (
 	"context"
@@ -21,16 +21,13 @@ type HarnessResult struct {
 }
 
 // RunSpec is one harness invocation, fully resolved: the template, the filled
-// prompt, the run directory, the time budget, and any per-run MCP environment
-// overrides (the ephemeral lane points SOULSTREAM_CREDS at the run's minted
-// credential this way).
+// prompt, the run directory, and the time budget.
 type RunSpec struct {
-	Template   Template
-	Prompt     string
-	Topic      string // the wake's topic path, for harnesses that take it as an argument
-	RunDir     string
-	Timeout    time.Duration
-	MCPOverlay map[string]string
+	Template Template
+	Prompt   string
+	Topic    string // the wake's topic path, for harnesses that take it as an argument
+	RunDir   string
+	Timeout  time.Duration
 }
 
 // RunHarness executes one wake's harness run: fresh directory, generated MCP
@@ -60,7 +57,14 @@ func RunHarness(ctx context.Context, spec RunSpec) HarnessResult {
 	defer cancel()
 	cmd := exec.CommandContext(runCtx, argv[0], argv[1:]...)
 	cmd.Dir = spec.RunDir
-	cmd.Env = sanitizedEnv(os.Environ())
+	// The child sees the host environment scrubbed of SOULSTREAM_*, with the
+	// template's own env applied on top — the lane for a per-agent provider
+	// credential (ANTHROPIC_API_KEY, …) when the host's login state isn't it.
+	env := sanitizedEnv(os.Environ())
+	for k, v := range spec.Template.Env {
+		env = append(env, k+"="+v)
+	}
+	cmd.Env = env
 	cmd.Stdin = nil
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
@@ -101,31 +105,19 @@ func RunHarness(ctx context.Context, spec RunSpec) HarnessResult {
 	return res
 }
 
-// writeMCPConfig renders the per-run MCP client configuration: the template's
-// static environment with the run's overlay applied, mode 0600 — it may carry
-// a credential.
+// writeMCPConfig renders the per-run MCP client configuration from the
+// template, mode 0600 — it may carry a credential.
 func writeMCPConfig(spec RunSpec, path string) error {
-	env := make(map[string]string, len(spec.Template.MCPEnv)+len(spec.MCPOverlay))
-	for k, v := range spec.Template.MCPEnv {
-		env[k] = v
-	}
-	for k, v := range spec.MCPOverlay {
-		if v == "" {
-			delete(env, k)
-			continue
-		}
-		env[k] = v
-	}
 	doc := map[string]any{"mcpServers": map[string]any{"soulstream": map[string]any{
 		"command": spec.Template.MCPCommand,
-		"env":     env,
+		"env":     spec.Template.MCPEnv,
 	}}}
 	raw, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
-		return fmt.Errorf("waker: render mcp config: %w", err)
+		return fmt.Errorf("wrap: render mcp config: %w", err)
 	}
 	if err := os.WriteFile(path, raw, 0o600); err != nil {
-		return fmt.Errorf("waker: write mcp config: %w", err)
+		return fmt.Errorf("wrap: write mcp config: %w", err)
 	}
 	return nil
 }
@@ -196,10 +188,10 @@ func fill(s string, vars map[string]string) string {
 	return s
 }
 
-// sanitizedEnv strips every SOULSTREAM_* variable: nothing from the waker's
-// host environment — least of all the operator's own realm configuration —
-// may leak into a harness child. The template and overlay are the child's
-// whole realm-facing surface.
+// sanitizedEnv strips every SOULSTREAM_* variable: nothing from the host
+// environment — least of all the person's own realm configuration — may
+// leak into a harness child. The template is the child's whole
+// realm-facing surface.
 func sanitizedEnv(environ []string) []string {
 	out := make([]string, 0, len(environ))
 	for _, kv := range environ {

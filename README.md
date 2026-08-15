@@ -45,19 +45,19 @@ What already works:
   isolation boundary (a host path readable natively is denied in-guest).
   Backend selection is node-side (`SOULSTREAM_BACKEND=msb`); the declaration
   cannot even name a backend.
-- **M3.2 — the waker** (specs/005): the workload plane's **trigger arm** —
-  `soulstream-workloads waker serve <config>` holds a durable consumer per registered
-  agent and turns a mention into one invocation of a headless harness
-  (claude-code, codex, anything with a typed terminal event), guaranteeing
-  the topic **exactly one outcome per admitted wake**: the agent's reply, or
-  the waker's own failure testimony. Harnesses are configuration (an
-  invocation template: command + terminal-event mapping), never code. An
-  agent is addressable while nothing runs — mentions accumulate in the
-  notify stream (newest 100 per persona, the protocol's bound) and drain
-  when the waker returns; taking the agent's credential away refuses its
-  next wake. The hermetic gate proves the protocol with a scripted harness;
-  `make test-wake` wakes a real `claude -p`. See
-  [`specs/005-the-waker/quickstart.md`](specs/005-the-waker/quickstart.md).
+- **Wrap — run your agent where you are** (specs/006, reshaped same-day from
+  specs/005's central daemon): `soulstream wrap --harness claude` (the core
+  CLI's external-subcommand seam reaching `soulstream-wrap`) wraps the
+  assistant already installed and logged in on this machine, so mentions of
+  the agent's persona become invocations — **one process, one agent, one
+  credential** (the shell's copy-paste block), no consumer state: outcomes
+  publish under a deterministic id, so the record itself is the position and
+  restarts answer nothing twice. Every wake leaves exactly one outcome — the
+  reply, or the agent's own self-report. Harnesses are configuration
+  (presets: claude, codex; template files for the rest). The hermetic gate
+  proves the protocol with a scripted harness; `make test-wrap` wakes a real
+  `claude -p`. The central daemon is cut with its reversal recorded in
+  design 0004 §9.
 
 The decided shape:
 
