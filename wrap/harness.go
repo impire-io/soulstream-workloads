@@ -108,10 +108,16 @@ func RunHarness(ctx context.Context, spec RunSpec) HarnessResult {
 // writeMCPConfig renders the per-run MCP client configuration from the
 // template, mode 0600 — it may carry a credential.
 func writeMCPConfig(spec RunSpec, path string) error {
-	doc := map[string]any{"mcpServers": map[string]any{"soulstream": map[string]any{
+	server := map[string]any{
 		"command": spec.Template.MCPCommand,
 		"env":     spec.Template.MCPEnv,
-	}}}
+	}
+	// Present only when the door takes arguments: an absent key keeps the
+	// argless config byte-shaped as it always was.
+	if len(spec.Template.MCPArgs) > 0 {
+		server["args"] = spec.Template.MCPArgs
+	}
+	doc := map[string]any{"mcpServers": map[string]any{"soulstream": server}}
 	raw, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return fmt.Errorf("wrap: render mcp config: %w", err)

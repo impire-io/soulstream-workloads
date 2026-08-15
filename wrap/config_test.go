@@ -34,6 +34,21 @@ func TestClaudePresetDerivesMCPFromLane(t *testing.T) {
 	}
 }
 
+// A caller that carries the tool door inside itself points the preset at
+// its own executable and names the verb that speaks MCP — the lane's args
+// ride into the template unchanged.
+func TestClaudePresetCarriesTheSubcommandDoor(t *testing.T) {
+	tpl, err := Preset("claude", Lane{
+		Persona: "clerk", MCPCommandLoc: "/opt/soulstream", MCPArgs: []string{"mcp"},
+	})
+	if err != nil {
+		t.Fatalf("preset: %v", err)
+	}
+	if tpl.MCPCommand != "/opt/soulstream" || len(tpl.MCPArgs) != 1 || tpl.MCPArgs[0] != "mcp" {
+		t.Fatalf("door = %q %v, want /opt/soulstream [mcp]", tpl.MCPCommand, tpl.MCPArgs)
+	}
+}
+
 // The codex preset owns the envelope alone (its MCP config is its own global
 // file); an unknown name is refused with the two that exist.
 func TestCodexPresetAndUnknown(t *testing.T) {
@@ -82,9 +97,13 @@ func TestLoadTemplateRefusals(t *testing.T) {
 		})
 	}
 	good := write(t, `{"command":["x","{{PROMPT}}"],"prompt":"p","env":{"K":"v"},
+		"mcp_command":"soulstream","mcp_args":["mcp"],
 		"terminal":{"type_field":"t","terminal_value":"v","text_field":"x"}}`)
 	tpl, err := LoadTemplate(good)
 	if err != nil || tpl.Env["K"] != "v" {
 		t.Fatalf("good template = %+v, %v", tpl, err)
+	}
+	if len(tpl.MCPArgs) != 1 || tpl.MCPArgs[0] != "mcp" {
+		t.Fatalf("mcp_args = %v, want [mcp]", tpl.MCPArgs)
 	}
 }

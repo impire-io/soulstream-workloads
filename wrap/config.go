@@ -23,13 +23,17 @@ type Config struct {
 // Template is one harness as configuration — the whole difference between
 // claude, codex, and a shell script. Env is the harness's own environment
 // (a provider key like ANTHROPIC_API_KEY when the host's login state is not
-// the lane); MCPCommand/MCPEnv describe the tool door written per run.
+// the lane); MCPCommand/MCPArgs/MCPEnv describe the tool door written per
+// run. Args exist so a subcommand can be the door — a caller that carries
+// the door inside itself points command at its own executable and says
+// which verb speaks MCP.
 type Template struct {
 	Command    []string          `json:"command"`
 	Prompt     string            `json:"prompt"`
 	Terminal   TerminalMap       `json:"terminal"`
 	Env        map[string]string `json:"env,omitempty"`
 	MCPCommand string            `json:"mcp_command,omitempty"`
+	MCPArgs    []string          `json:"mcp_args,omitempty"`
 	MCPEnv     map[string]string `json:"mcp_env,omitempty"`
 }
 
@@ -110,7 +114,8 @@ type Lane struct {
 	Token         string
 	Realm         string
 	Persona       string
-	MCPCommandLoc string // "" = "soulstream-mcp" from PATH
+	MCPCommandLoc string   // "" = "soulstream-mcp" from PATH
+	MCPArgs       []string // args before the door speaks MCP — a subcommand door
 }
 
 // Preset returns a named built-in template. The two names are the two
@@ -142,6 +147,7 @@ func Preset(name string, lane Lane) (Template, error) {
 			Terminal: TerminalMap{TypeField: "type", TerminalValue: "result",
 				TextField: "result", StatusField: "subtype", SuccessValue: "success"},
 			MCPCommand: mcpCommand,
+			MCPArgs:    lane.MCPArgs,
 			MCPEnv:     mcpEnv,
 		}, nil
 	case "codex":
