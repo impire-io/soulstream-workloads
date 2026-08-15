@@ -2,6 +2,7 @@ package wrap
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -139,8 +140,50 @@ func TestMCPConfigFromTemplate(t *testing.T) {
 	if !strings.Contains(s, "sit_deadbeef") || !strings.Contains(s, "acme") || !strings.Contains(s, "soulstream-mcp") {
 		t.Fatalf("mcp config missing template values:\n%s", s)
 	}
+	// A template with no args writes a config with no args key — the shape
+	// every existing template produces stays exactly what it was.
+	if strings.Contains(s, `"args"`) {
+		t.Fatalf("an argless template wrote an args key:\n%s", s)
+	}
 	info, err := os.Stat(filepath.Join(spec.RunDir, "mcp.json"))
 	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("mcp config mode = %v, want 0600", info.Mode().Perm())
+	}
+}
+
+// A subcommand door: the template's args land in the written config beside
+// the command, the way every MCP client reads them.
+func TestMCPConfigCarriesArgs(t *testing.T) {
+	dir := t.TempDir()
+	spec := RunSpec{
+		Template: Template{
+			Command:    []string{"/bin/sh", "-c", "true"},
+			Prompt:     "p",
+			Terminal:   claudeMap(),
+			MCPCommand: "/opt/soulstream",
+			MCPArgs:    []string{"mcp"},
+			MCPEnv:     map[string]string{"SOULSTREAM_PERSONA": "clerk"},
+		},
+		Prompt:  "p",
+		RunDir:  filepath.Join(dir, "run"),
+		Timeout: 10 * time.Second,
+	}
+	_ = RunHarness(context.Background(), spec)
+	raw, err := os.ReadFile(filepath.Join(spec.RunDir, "mcp.json"))
+	if err != nil {
+		t.Fatalf("mcp config: %v", err)
+	}
+	var doc struct {
+		Servers map[string]struct {
+			Command string   `json:"command"`
+			Args    []string `json:"args"`
+		} `json:"mcpServers"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("mcp config does not parse: %v\n%s", err, raw)
+	}
+	door := doc.Servers["soulstream"]
+	if door.Command != "/opt/soulstream" || len(door.Args) != 1 || door.Args[0] != "mcp" {
+		t.Fatalf("door = %q %v, want /opt/soulstream [mcp]", door.Command, door.Args)
 	}
 }
