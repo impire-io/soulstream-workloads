@@ -107,3 +107,28 @@ func TestLoadTemplateRefusals(t *testing.T) {
 		t.Fatalf("mcp_args = %v, want [mcp]", tpl.MCPArgs)
 	}
 }
+
+// The declared extras ride into the door's environment beside the lane —
+// and the lane's own keys stay the lane's.
+func TestPresetCarriesDeclaredExtraEnv(t *testing.T) {
+	tpl, err := Preset("claude", Lane{
+		URL: "nats://127.0.0.1:4222", Token: "sit_x", Realm: "acme", Persona: "scribe",
+		MCPExtraEnv: map[string]string{
+			"SOULSTREAM_SUBJECT": "daan",
+			"SOULSTREAM_TOKEN":   "overridden-never",
+			"EMPTY":              "",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tpl.MCPEnv["SOULSTREAM_SUBJECT"]; got != "daan" {
+		t.Fatalf("extra env did not ride: %q", got)
+	}
+	if got := tpl.MCPEnv["SOULSTREAM_TOKEN"]; got != "sit_x" {
+		t.Fatalf("an extra overrode the lane's own key: %q", got)
+	}
+	if _, ok := tpl.MCPEnv["EMPTY"]; ok {
+		t.Fatal("an empty extra was carried")
+	}
+}

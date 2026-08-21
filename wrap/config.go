@@ -116,6 +116,13 @@ type Lane struct {
 	Persona       string
 	MCPCommandLoc string   // "" = "soulstream-mcp" from PATH
 	MCPArgs       []string // args before the door speaks MCP — a subcommand door
+	// MCPExtraEnv rides into the door's environment beside the lane —
+	// the stated surface for a door's outbound identity (the subject a
+	// personal agent acts for and the delegation authorizing it, hq
+	// design external-tools.md D41). Deliberately explicit: wrap scrubs
+	// the host's SOULSTREAM_* from the harness on purpose, so anything a
+	// door needs arrives by declaration, never by inheritance.
+	MCPExtraEnv map[string]string
 }
 
 // Preset returns a named built-in template. The two names are the two
@@ -134,6 +141,12 @@ func Preset(name string, lane Lane) (Template, error) {
 		"SOULSTREAM_PERSONA": lane.Persona,
 	} {
 		if v != "" {
+			mcpEnv[k] = v
+		}
+	}
+	// The declared extras ride last: the lane's own keys stay the lane's.
+	for k, v := range lane.MCPExtraEnv {
+		if _, taken := mcpEnv[k]; !taken && v != "" {
 			mcpEnv[k] = v
 		}
 	}
