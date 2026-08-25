@@ -7,6 +7,15 @@
 // client of the record, never a second control plane, and it keeps no
 // state — not even a consumer: every outcome publishes under a
 // deterministic id, so the record itself is the position.
+//
+// Every wake passes a budget before the harness runs (hq design 0006 —
+// loop safety): a window floor on the persona's own recent turns in the
+// topic, and a depth bound on the provable wake chain behind the trigger.
+// Both compute from the topic view alone. A wake over budget is refused
+// op-lessly and loudly — nothing posts, one wake_refused log line says
+// why with the numbers, and the mention stays answerable: exhaustion is a
+// delay, never a loss. Running without the budget is Config.Unbudgeted,
+// an explicit standing logged once at startup.
 package wrap
 
 import (
@@ -49,7 +58,15 @@ func (w *Wrapper) Run(ctx context.Context) error {
 	if err := w.Config.Template.Validate(); err != nil {
 		return err
 	}
+	if err := w.Config.Budget.Validate(); err != nil {
+		return err
+	}
 	w.Config.ApplyDefaults()
+	if w.Config.Unbudgeted || (w.Config.Budget.MaxHops == 0 && w.Config.Budget.WindowMax == 0) {
+		// The explicit unbudgeted standing, stated once: no wake budget
+		// means a cascade is bounded by nothing but the operator's eye.
+		log.Info("wrap_unbudgeted", "persona", w.Config.Persona)
+	}
 
 	rlm := &agentRealm{client: w.Client}
 	wakes := make(chan Wake, 64)
@@ -140,7 +157,8 @@ func (r *agentRealm) Read(ctx context.Context, topicPath string) ([]Turn, error)
 	}
 	out := make([]Turn, 0, len(view.Contributions))
 	for _, c := range view.Contributions {
-		out = append(out, Turn{OpID: c.OpID, Author: c.Author, Type: c.Type, Body: c.Body})
+		out = append(out, Turn{OpID: c.OpID, Author: c.Author, Type: c.Type, Body: c.Body,
+			Timestamp: c.Timestamp})
 	}
 	return out, nil
 }
