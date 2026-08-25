@@ -21,6 +21,15 @@ type TopicClient interface {
 	AbandonWork(ctx context.Context, itemID string) (string, error)
 }
 
+// ArtifactSource resolves a declaration's artifact to the local path a
+// backend launches. The shipped occupant is the artifact package's Resolver
+// (file:// = the host path; soulstream:// = the record lineage's tip,
+// digest-checked, materialised into the run's scratch — reaped with it, never
+// a durable copy). The runner stays pure: it never touches NATS itself.
+type ArtifactSource interface {
+	Resolve(ctx context.Context, d declaration.Declaration, scratchDir string) (string, error)
+}
+
 // Runner launches workloads and records their life as work ops. It holds no
 // connection itself; the caller injects the topic client for the runner
 // persona, keeping the runner testable and the connection lifecycle external.
@@ -30,6 +39,10 @@ type Runner struct {
 	Realm       string
 	CredTTL     time.Duration
 	ScratchRoot string
+	// Artifacts resolves record-form (soulstream://) artifacts. nil keeps
+	// today's file://-only behavior; a record-form declaration then refuses
+	// before any op publishes.
+	Artifacts ArtifactSource
 }
 
 // Running is a launched workload the caller observes and ends. How it ends
@@ -51,9 +64,17 @@ func (r *Runner) Launch(ctx context.Context, tc TopicClient, d declaration.Decla
 	if err := d.Validate(); err != nil {
 		return nil, fmt.Errorf("runner: invalid declaration: %w", err)
 	}
-	artifactPath, err := d.ArtifactPath()
+	// Preflight (publishes nothing, FR-008): a file:// artifact resolves to
+	// its host path right here; a record-form artifact only checks that a
+	// source exists — the fetch itself lands in the run's scratch below,
+	// after the work item exists to carry a failure.
+	ref, err := d.ArtifactRef()
 	if err != nil {
 		return nil, fmt.Errorf("runner: %w", err)
+	}
+	artifactPath := ref.Path
+	if ref.Scheme != declaration.SchemeFile && r.Artifacts == nil {
+		return nil, fmt.Errorf("runner: artifact %s is record-form and no artifact source is configured", d.Artifact)
 	}
 	cred, err := r.Minter.Mint(minter.Scope{Role: d.Role, Persona: d.Persona, Topic: d.Topic}, r.CredTTL)
 	if err != nil {
@@ -68,13 +89,29 @@ func (r *Runner) Launch(ctx context.Context, tc TopicClient, d declaration.Decla
 		return nil, fmt.Errorf("runner: open work: %w", err)
 	}
 
+	scratchDir := filepath.Join(r.ScratchRoot, itemID)
+	if artifactPath == "" {
+		// The record form: materialise the lineage tip into the run's
+		// scratch (digest-checked, reaped with the run). A failure ends the
+		// item like a start failure — work.open + work.abandon, no dangling
+		// claim.
+		resolved, rerr := r.Artifacts.Resolve(ctx, d, scratchDir)
+		if rerr != nil {
+			if _, aerr := tc.AbandonWork(ctx, itemID); aerr != nil {
+				return nil, fmt.Errorf("runner: resolve artifact failed (%v) and abandon failed: %w", rerr, aerr)
+			}
+			return nil, fmt.Errorf("runner: resolve artifact: %w", rerr)
+		}
+		artifactPath = resolved
+	}
+
 	spec := backend.LaunchSpec{
 		Artifact:   artifactPath,
 		Args:       d.Args,
 		Cred:       cred,
 		Realm:      r.Realm,
 		Topic:      d.Topic,
-		ScratchDir: filepath.Join(r.ScratchRoot, itemID),
+		ScratchDir: scratchDir,
 	}
 	h, startErr := r.Backend.Start(ctx, spec)
 	if startErr != nil {
