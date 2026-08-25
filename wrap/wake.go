@@ -34,9 +34,11 @@ const retryDelay = 2 * time.Second
 
 // handleWake answers one mention, or explains why not, and returns what it
 // did (for the log and the tests): "answered", "self_reported",
-// "already_answered", "self_skipped", or an error when the realm was
-// unreachable (the caller may retry the whole wake later — nothing was
-// posted without its deterministic id, so a retry never duplicates).
+// "already_answered", "self_skipped", "refused" (the wake budget spoke —
+// op-less, loud, re-evaluated on any later delivery), or an error when the
+// realm was unreachable (the caller may retry the whole wake later —
+// nothing was posted without its deterministic id, so a retry never
+// duplicates).
 func handleWake(ctx context.Context, cfg Config, realm Realm, invoke Invoker, w Wake, log *slog.Logger) (string, error) {
 	log = log.With("topic", w.Topic, "op", w.OpID, "author", w.Author)
 	if w.Author == cfg.Persona {
@@ -54,6 +56,26 @@ func handleWake(ctx context.Context, cfg Config, realm Realm, invoke Invoker, w 
 	if ContainsOp(before, wakeID) {
 		log.Info("wake_already_answered", "outcome", wakeID)
 		return "already_answered", nil
+	}
+
+	if !cfg.Unbudgeted {
+		// The wake budget (hq design 0006) sits here — after the self-skip
+		// and the outcome-existence pre-check, before the outcome obligation
+		// attaches. A refusal is op-less (a refusal that posts is a wake
+		// source — the measured failure ping-pong) and loud; nothing is
+		// acked away, so a later catch-up re-evaluates against a slid
+		// window: exhaustion is a delay, never a loss.
+		trigger := Turn{OpID: w.OpID, Author: w.Author}
+		for _, t := range before {
+			if t.OpID == w.OpID {
+				trigger = t
+				break
+			}
+		}
+		if reason, refuse := BudgetDecision(cfg.Budget, before, trigger, cfg.Persona, time.Now()); refuse {
+			log.Warn("wake_refused", "reason", reason)
+			return "refused", nil
+		}
 	}
 
 	prompt := fill(cfg.Template.Prompt, map[string]string{

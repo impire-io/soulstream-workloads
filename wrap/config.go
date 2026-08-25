@@ -18,6 +18,34 @@ type Config struct {
 	RunTimeout time.Duration
 	Retries    int // harness attempts per wake before the self-report
 	InboxLimit int // catch-up depth (0 = the protocol default of 50)
+	Budget     Budget
+	Unbudgeted bool // explicit opt-out: no wake budget, logged once at startup
+}
+
+// Budget bounds what wakes this wrapper admits (hq design 0006, research
+// episode 0128): the depth bound counts provable wake hops (the WakeOpID
+// binding) from a chain root; the window floor counts the persona's own
+// turns in the wake's topic. Composed because each alone fails a measured
+// case — depth is evaded by outcomes posted under arbitrary ids, the window
+// is coarser than depth on provable chains. A zero part disables that part;
+// opting out entirely is Config.Unbudgeted, never a clever zero reading.
+type Budget struct {
+	MaxHops   int           // provable-chain depth bound D
+	WindowMax int           // own turn.posts per topic per window K
+	WindowPer time.Duration // the window W
+}
+
+// Validate refuses a budget that cannot mean anything: negative knobs, or a
+// window count without a window duration.
+func (b Budget) Validate() error {
+	if b.MaxHops < 0 || b.WindowMax < 0 || b.WindowPer < 0 {
+		return fmt.Errorf("wrap: budget knobs cannot be negative (max_hops=%d window_max=%d window_per=%s)",
+			b.MaxHops, b.WindowMax, b.WindowPer)
+	}
+	if b.WindowMax > 0 && b.WindowPer == 0 {
+		return fmt.Errorf("wrap: budget window_max=%d needs a window_per duration", b.WindowMax)
+	}
+	return nil
 }
 
 // Template is one harness as configuration — the whole difference between
@@ -54,6 +82,15 @@ const (
 	defaultRunTimeout = 150 * time.Second
 )
 
+// The default wake budget (hq design 0006 §3): generous against every
+// legitimate flow measured, orders of magnitude under the danger numbers
+// (84 wakes/s pair cycle, 1,264.7 ops/s colony — episode 0128).
+const (
+	defaultMaxHops   = 4
+	defaultWindowMax = 8
+	defaultWindowPer = 10 * time.Minute
+)
+
 // Validate refuses what specs/005 refused: no command, no prompt, no
 // machine-readable terminal event, or a half-declared status pair.
 func (t *Template) Validate() error {
@@ -73,13 +110,19 @@ func (t *Template) Validate() error {
 	return nil
 }
 
-// ApplyDefaults fills the budgets people rarely set.
+// ApplyDefaults fills the budgets people rarely set. An untouched Budget
+// gets the design defaults unless the caller opted out with Unbudgeted; a
+// partly-set Budget is taken as written (a zero part is that part
+// disabled).
 func (c *Config) ApplyDefaults() {
 	if c.Retries == 0 {
 		c.Retries = defaultRetries
 	}
 	if c.RunTimeout == 0 {
 		c.RunTimeout = defaultRunTimeout
+	}
+	if !c.Unbudgeted && c.Budget == (Budget{}) {
+		c.Budget = Budget{MaxHops: defaultMaxHops, WindowMax: defaultWindowMax, WindowPer: defaultWindowPer}
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The claude preset derives its MCP environment from the wrapper's own lane
@@ -130,5 +131,54 @@ func TestPresetCarriesDeclaredExtraEnv(t *testing.T) {
 	}
 	if _, ok := tpl.MCPEnv["EMPTY"]; ok {
 		t.Fatal("an empty extra was carried")
+	}
+}
+
+// An untouched budget gets the design defaults (hq design 0006 §3); the
+// opt-out is the explicit Unbudgeted field, never a clever zero reading.
+func TestBudgetDefaults(t *testing.T) {
+	cfg := Config{Persona: "clerk"}
+	cfg.ApplyDefaults()
+	want := Budget{MaxHops: 4, WindowMax: 8, WindowPer: 10 * time.Minute}
+	if cfg.Budget != want {
+		t.Fatalf("default budget = %+v, want %+v", cfg.Budget, want)
+	}
+
+	out := Config{Persona: "clerk", Unbudgeted: true}
+	out.ApplyDefaults()
+	if out.Budget != (Budget{}) {
+		t.Fatalf("unbudgeted config grew a budget: %+v", out.Budget)
+	}
+}
+
+// A partly-set budget is taken as written: a zero part is that part
+// disabled, not an invitation to fill it.
+func TestBudgetPartialIsTakenAsWritten(t *testing.T) {
+	cfg := Config{Persona: "clerk", Budget: Budget{WindowMax: 20, WindowPer: time.Hour}}
+	cfg.ApplyDefaults()
+	if cfg.Budget.MaxHops != 0 || cfg.Budget.WindowMax != 20 || cfg.Budget.WindowPer != time.Hour {
+		t.Fatalf("partial budget rewritten: %+v", cfg.Budget)
+	}
+}
+
+// A budget that cannot mean anything is refused with a teaching error.
+func TestBudgetValidate(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		b    Budget
+		ok   bool
+	}{
+		{"zero is fine", Budget{}, true},
+		{"defaults are fine", Budget{MaxHops: 4, WindowMax: 8, WindowPer: 10 * time.Minute}, true},
+		{"depth only", Budget{MaxHops: 2}, true},
+		{"negative hops", Budget{MaxHops: -1}, false},
+		{"negative window", Budget{WindowMax: -1, WindowPer: time.Minute}, false},
+		{"negative duration", Budget{WindowMax: 1, WindowPer: -time.Minute}, false},
+		{"count without duration", Budget{WindowMax: 3}, false},
+	} {
+		err := tc.b.Validate()
+		if (err == nil) != tc.ok {
+			t.Errorf("%s: Validate() = %v, want ok=%v", tc.name, err, tc.ok)
+		}
 	}
 }

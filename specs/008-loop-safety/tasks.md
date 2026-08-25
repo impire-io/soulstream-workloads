@@ -15,9 +15,9 @@ No project setup needed — the feature grows the existing `wrap` package.
 
 ## Phase 2: Foundational (blocking prerequisites)
 
-- [ ] T001 Grow wrap's local view type `Turn` with `Timestamp time.Time` and map it from the contribution in `agentRealm.Read`, in `wrap/wrap.go` (type lives in `wrap/correlate.go`); adjust existing fakes/tests that construct `Turn` only where compilation requires it
-- [ ] T002 Add `Budget` struct (`MaxHops`, `WindowMax`, `WindowPer`) and `Unbudgeted bool` to `Config`, defaults `{4, 8, 10m}` applied in `ApplyDefaults` exactly when `Unbudgeted` is false and `Budget` is wholly zero; negative values refused by validation with a teaching error, in `wrap/config.go`
-- [ ] T003 [P] Table-driven tests for defaults, partial budgets, opt-out, and negative-value refusal in `wrap/config_test.go`
+- [x] T001 Grow wrap's local view type `Turn` with `Timestamp time.Time` and map it from the contribution in `agentRealm.Read`, in `wrap/wrap.go` (type lives in `wrap/correlate.go`); adjust existing fakes/tests that construct `Turn` only where compilation requires it
+- [x] T002 Add `Budget` struct (`MaxHops`, `WindowMax`, `WindowPer`) and `Unbudgeted bool` to `Config`, defaults `{4, 8, 10m}` applied in `ApplyDefaults` exactly when `Unbudgeted` is false and `Budget` is wholly zero; negative values refused by validation with a teaching error, in `wrap/config.go`
+- [x] T003 [P] Table-driven tests for defaults, partial budgets, opt-out, and negative-value refusal in `wrap/config_test.go`
 
 **Checkpoint**: config surface and view carry everything the gate needs; all existing tests still green.
 
@@ -27,13 +27,13 @@ No project setup needed — the feature grows the existing `wrap` package.
 
 **Independent Test**: two wrapped script agents that always mention each other; one human root; cascade halts at exactly `MaxHops` outcomes (wrapper-posted) and within `2×WindowMax` (self-posted); every refusal is one `wake_refused` log line and zero ops.
 
-- [ ] T004 [US1] Implement the pure walker — `ParentOf` (with match count), `ChainToRoot` (with ambiguity count), `ProvableHops` — beside `WakeOpID` in `wrap/correlate.go`
-- [ ] T005 [US1] Implement `BudgetDecision(b, view, trigger, persona, now)` (depth part + window part + composition; zero parts disabled; legible reason with the numbers) in `wrap/correlate.go`
-- [ ] T006 [P] [US1] Table-driven walker tests — resolution to root, chain roots at human posts and at arbitrary-id posts, depth counting, ambiguity reported — in `wrap/correlate_test.go`
-- [ ] T007 [P] [US1] Table-driven `BudgetDecision` tests — depth refusal at the boundary (hops+1 > D), window refusal at K within W, window ignores ops older than W and other authors' ops, zero parts never refuse — in `wrap/correlate_test.go`
-- [ ] T008 [US1] Wire the gate into `handleWake` in `wrap/wake.go`: after the self-skip and outcome-existence pre-check, before the harness; on refusal log `wake_refused` (persona, topic, trigger op, reason) at Warn, post nothing, return outcome `"refused"`
-- [ ] T009 [US1] Unit tests on the existing fake-realm shape: a refused wake posts nothing and returns `"refused"`; an admitted wake is byte-identical to today; the gate is not evaluated when `Unbudgeted`, in `wrap/wake_test.go`
-- [ ] T010 [US1] Integration test (embedded server, real wrappers, script invokers — the rig's cases): uncooperative two-agent cycle halts at exactly `MaxHops` outcomes with ≥1 refusal and no refusal op; id-evading self-post cycle halts within `2×WindowMax`, in `integration/budget_test.go`
+- [x] T004 [US1] Implement the pure walker — `ParentOf` (with match count), `ChainToRoot` (with ambiguity count), `ProvableHops` — beside `WakeOpID` in `wrap/correlate.go`
+- [x] T005 [US1] Implement `BudgetDecision(b, view, trigger, persona, now)` (depth part + window part + composition; zero parts disabled; legible reason with the numbers) in `wrap/correlate.go`
+- [x] T006 [P] [US1] Table-driven walker tests — resolution to root, chain roots at human posts and at arbitrary-id posts, depth counting, ambiguity reported — in `wrap/correlate_test.go`
+- [x] T007 [P] [US1] Table-driven `BudgetDecision` tests — depth refusal at the boundary (hops+1 > D), window refusal at K within W, window ignores ops older than W and other authors' ops, zero parts never refuse — in `wrap/correlate_test.go`
+- [x] T008 [US1] Wire the gate into `handleWake` in `wrap/wake.go`: after the self-skip and outcome-existence pre-check, before the harness; on refusal log `wake_refused` (persona, topic, trigger op, reason) at Warn, post nothing, return outcome `"refused"`
+- [x] T009 [US1] Unit tests on the existing fake-realm shape: a refused wake posts nothing and returns `"refused"`; an admitted wake is byte-identical to today; the gate is not evaluated when `Unbudgeted`, in `wrap/wake_test.go`
+- [x] T010 [US1] Integration test (embedded server, real wrappers, script invokers — the rig's cases): uncooperative two-agent cycle halts at exactly `MaxHops` outcomes with ≥1 refusal and no refusal op; id-evading self-post cycle halts within `2×WindowMax`, in `integration/budget_test.go`
 
 **Checkpoint**: SC-001, SC-002, SC-004 measured green — the colony gate's MVP stands.
 
@@ -43,7 +43,7 @@ No project setup needed — the feature grows the existing `wrap` package.
 
 **Independent Test**: human-rooted owner→A→B→A completes under defaults with zero refusals.
 
-- [ ] T011 [US2] Integration test: delegation chain of 3 outcomes completes under default budgets, zero refusals, every outcome walker-attributable to the human root; plus a single ordinary mention behaving exactly as today, in `integration/budget_test.go`
+- [x] T011 [US2] Integration test: delegation chain of 3 outcomes completes under default budgets, zero refusals, every outcome walker-attributable to the human root; plus a single ordinary mention behaving exactly as today, in `integration/budget_test.go`
 
 **Checkpoint**: SC-003 measured green.
 
@@ -53,7 +53,7 @@ No project setup needed — the feature grows the existing `wrap` package.
 
 **Independent Test**: refusal log carries budget kind + numbers; walker output answers "who triggered what".
 
-- [ ] T012 [US3] Assert refusal-log content (which budget, hops vs D or count vs K/W) via a captured `slog` handler in `wrap/wake_test.go`; assert walker ambiguity surfaces to the caller (constructed collision case) in `wrap/correlate_test.go`
+- [x] T012 [US3] Assert refusal-log content (which budget, hops vs D or count vs K/W) via a captured `slog` handler in `wrap/wake_test.go`; assert walker ambiguity surfaces to the caller (constructed collision case) in `wrap/correlate_test.go`
 
 **Checkpoint**: SC-006 green.
 
@@ -63,15 +63,15 @@ No project setup needed — the feature grows the existing `wrap` package.
 
 **Independent Test**: existing wake behavior unchanged under opt-out; one `wrap_unbudgeted` startup line.
 
-- [ ] T013 [US4] Log the unbudgeted standing once in `Run` (covers `Unbudgeted` and an explicit all-zero budget) in `wrap/wrap.go`, with a captured-handler test in `wrap/wake_test.go` or `wrap/config_test.go`
-- [ ] T014 [US4] Integration test: the US1 cascade scenario under `Unbudgeted: true` runs unbounded past the would-be bound within the run window (today's behavior), in `integration/budget_test.go`
+- [x] T013 [US4] Log the unbudgeted standing once in `Run` (covers `Unbudgeted` and an explicit all-zero budget) in `wrap/wrap.go`, with a captured-handler test in `wrap/wake_test.go` or `wrap/config_test.go`
+- [x] T014 [US4] Integration test: the US1 cascade scenario under `Unbudgeted: true` runs unbounded past the would-be bound within the run window (today's behavior), in `integration/budget_test.go`
 
 **Checkpoint**: SC-005 green — the whole existing suite passes with opt-out semantics intact.
 
 ## Final Phase: Polish & Cross-Cutting
 
-- [ ] T015 Grow the `wrap` package doc (`wrap/wrap.go` doc comment) and the config commentary with the budget concept in the design's plain words (S3 duty; quickstart.md stays the consumer view)
-- [ ] T016 Full gate: `make fmt && make test && make lint` all green, `-race` on the integration suite; then the soul-hq journey episode for the build (`/journey-log`, same working session) and the design/roadmap "built" refreshes in soul-hq
+- [x] T015 Grow the `wrap` package doc (`wrap/wrap.go` doc comment) and the config commentary with the budget concept in the design's plain words (S3 duty; quickstart.md stays the consumer view)
+- [x] T016 Full gate: `make fmt && make test && make lint` all green, `-race` on the integration suite; then the soul-hq journey episode for the build (`/journey-log`, same working session) and the design/roadmap "built" refreshes in soul-hq
 
 ## Dependencies & Execution Order
 
