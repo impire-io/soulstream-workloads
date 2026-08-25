@@ -21,6 +21,7 @@ import (
 
 	"github.com/impire-io/soulstream-core/realm"
 
+	"github.com/impire-io/soulstream-workloads/declaration"
 	"github.com/impire-io/soulstream-workloads/wrap"
 )
 
@@ -35,6 +36,7 @@ func run(args []string) error {
 	fs := flag.NewFlagSet("soulstream-wrap", flag.ContinueOnError)
 	harness := fs.String("harness", "", "preset: claude | codex")
 	templateFile := fs.String("template", "", "custom template file (overrides --harness)")
+	declFile := fs.String("declaration", "", "agent declaration file — its wake entries drive the engine (mention-only without it)")
 	scratch := fs.String("scratch", "", "run-directory root (default: a temp dir)")
 	runTimeout := fs.Duration("run-timeout", 150*time.Second, "harness time budget per attempt")
 	retries := fs.Int("retries", 2, "harness attempts per wake before the self-report")
@@ -99,15 +101,35 @@ func run(args []string) error {
 	}
 	defer func() { _ = client.Close() }()
 
+	cfg := wrap.Config{
+		Persona:    lane.Persona,
+		Template:   tpl,
+		Scratch:    root,
+		RunTimeout: *runTimeout,
+		Retries:    *retries,
+		InboxLimit: *inboxLimit,
+	}
+	if *declFile != "" {
+		// Declaration-driven operation: the record's wake vocabulary drives
+		// the engine — mention wakes run only if declared, non-record
+		// outcomes land on the declared home topic, instructions ride from
+		// the record at every wake. The declaration's persona must be the
+		// credential's persona: the connection is the authority.
+		raw, err := os.ReadFile(*declFile)
+		if err != nil {
+			return fmt.Errorf("read declaration: %w", err)
+		}
+		d, err := declaration.Parse(raw)
+		if err != nil {
+			return err
+		}
+		cfg, err = wrap.DeclaredConfig(cfg, d, client)
+		if err != nil {
+			return err
+		}
+	}
 	w := &wrap.Wrapper{
-		Config: wrap.Config{
-			Persona:    lane.Persona,
-			Template:   tpl,
-			Scratch:    root,
-			RunTimeout: *runTimeout,
-			Retries:    *retries,
-			InboxLimit: *inboxLimit,
-		},
+		Config: cfg,
 		Client: client,
 		Log:    slog.New(slog.NewTextHandler(os.Stderr, nil)),
 	}

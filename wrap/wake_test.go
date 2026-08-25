@@ -246,3 +246,154 @@ func TestWakeZeroBudgetIsTodaysBehavior(t *testing.T) {
 		t.Fatalf("calls = %s", rec)
 	}
 }
+
+// --- 009: the wake engine's four kinds through the one seam ---
+
+// promptSpy is an invoker that records the filled prompt it was handed.
+func promptSpy(rec *recorder, res HarnessResult, prompt *string) Invoker {
+	return func(_ context.Context, spec RunSpec) HarnessResult {
+		rec.note("invoke")
+		*prompt = spec.Prompt
+		return res
+	}
+}
+
+type fakeInstructions struct {
+	text string
+	err  error
+}
+
+func (f fakeInstructions) Materialise(context.Context) (string, error) { return f.text, f.err }
+
+// A schedule wake: no author, body from the tick payload, outcome on the
+// wake's (home) topic, and KIND filled for the prompt.
+func TestWakeScheduleKindHappyPath(t *testing.T) {
+	rec := &recorder{}
+	var prompt string
+	cfg := testCfg(1)
+	cfg.Template.Prompt = "KIND={{KIND}}\nAUTHOR={{AUTHOR}}\nBODY={{BODY}}"
+	w := Wake{Kind: KindSchedule, Topic: "home-topic", OpID: "137", Body: `schedule "daily" fired (@every 24h)`}
+	got, err := handleWake(context.Background(), cfg, &fakeRealm{rec: rec},
+		promptSpy(rec, HarnessResult{OK: true, Text: "did the rounds"}, &prompt), w, discard())
+	if err != nil || got != "answered" {
+		t.Fatalf("outcome = %q, %v", got, err)
+	}
+	if rec.String() != "read,invoke,read,post()" {
+		t.Fatalf("calls = %s", rec)
+	}
+	if !strings.Contains(prompt, "KIND=schedule") || !strings.Contains(prompt, `BODY=schedule "daily" fired`) ||
+		!strings.Contains(prompt, "AUTHOR=\n") {
+		t.Fatalf("prompt = %q", prompt)
+	}
+}
+
+// A failed schedule/subject wake self-reports on the home topic tapping
+// NOBODY — there is no asker (contract: wake-kinds.md).
+func TestWakeNoAuthorSelfReportTapsNobody(t *testing.T) {
+	for _, kind := range []WakeKind{KindSchedule, KindSubject} {
+		rec := &recorder{}
+		w := Wake{Kind: kind, Topic: "home-topic", OpID: "abc123", Body: "payload"}
+		got, err := handleWake(context.Background(), testCfg(1), &fakeRealm{rec: rec},
+			invokeResult(rec, HarnessResult{Detail: "harness died"}), w, discard())
+		if err != nil || got != "self_reported" {
+			t.Fatalf("%s outcome = %q, %v", kind, got, err)
+		}
+		if rec.String() != "read,invoke,read,post()" {
+			t.Fatalf("%s calls = %s, want a tap-less self-report", kind, rec)
+		}
+	}
+}
+
+// A topic wake self-reports tapping the triggering op's author, and anchors
+// its body from the view like a mention does.
+func TestWakeTopicKindTapsTriggerAuthor(t *testing.T) {
+	rec := &recorder{}
+	var prompt string
+	realm := &fakeRealm{rec: rec, view: []Turn{
+		{OpID: "op1", Author: "poster", Type: "turn.post", Body: "fresh finding"},
+	}}
+	w := Wake{Kind: KindTopic, Topic: "watched", OpID: "op1", Author: "poster"}
+	cfg := testCfg(1)
+	cfg.Template.Prompt = "BODY={{BODY}}"
+	got, err := handleWake(context.Background(), cfg, realm,
+		promptSpy(rec, HarnessResult{Detail: "no answer"}, &prompt), w, discard())
+	if err != nil || got != "self_reported" {
+		t.Fatalf("outcome = %q, %v", got, err)
+	}
+	if rec.String() != "read,invoke,read,post(poster)" {
+		t.Fatalf("calls = %s, want the trigger author tapped", rec)
+	}
+	if !strings.Contains(prompt, "BODY=fresh finding") {
+		t.Fatalf("prompt = %q, want the anchored body", prompt)
+	}
+}
+
+// A topic wake for an op authored by the declared persona never wakes it —
+// the normative self-exclusion at admission.
+func TestWakeTopicKindSelfExcluded(t *testing.T) {
+	rec := &recorder{}
+	w := Wake{Kind: KindTopic, Topic: "watched", OpID: "op1", Author: "clerk"}
+	got, err := handleWake(context.Background(), testCfg(1), &fakeRealm{rec: rec},
+		invokeResult(rec, HarnessResult{OK: true, Text: "never"}), w, discard())
+	if err != nil || got != "self_skipped" {
+		t.Fatalf("outcome = %q, %v", got, err)
+	}
+	if rec.String() != "" {
+		t.Fatalf("calls = %s, want none", rec)
+	}
+}
+
+// Declared instructions are materialised per wake and delivered through the
+// prompt fill; legacy wakes fill KIND=mention.
+func TestWakeInstructionsInPrompt(t *testing.T) {
+	rec := &recorder{}
+	var prompt string
+	cfg := testCfg(1)
+	cfg.Template.Prompt = "KIND={{KIND}}\nINSTRUCTIONS={{INSTRUCTIONS}}"
+	cfg.Instructions = fakeInstructions{text: "v2: be thorough"}
+	got, err := handleWake(context.Background(), cfg, &fakeRealm{rec: rec},
+		promptSpy(rec, HarnessResult{OK: true, Text: "ok"}, &prompt), wake("owner"), discard())
+	if err != nil || got != "answered" {
+		t.Fatalf("outcome = %q, %v", got, err)
+	}
+	if !strings.Contains(prompt, "INSTRUCTIONS=v2: be thorough") || !strings.Contains(prompt, "KIND=mention") {
+		t.Fatalf("prompt = %q", prompt)
+	}
+}
+
+// An instructions materialisation failure parks the wake loudly: an error,
+// no invoke, no post — the trigger stays answerable and the agent never runs
+// on unverifiable instructions.
+func TestWakeInstructionsFailureParks(t *testing.T) {
+	rec := &recorder{}
+	cfg := testCfg(1)
+	cfg.Instructions = fakeInstructions{err: fmt.Errorf("digest mismatch")}
+	_, err := handleWake(context.Background(), cfg, &fakeRealm{rec: rec},
+		invokeResult(rec, HarnessResult{OK: true, Text: "never"}), wake("owner"), discard())
+	if err == nil || !strings.Contains(err.Error(), "instructions") {
+		t.Fatalf("err = %v, want the instructions failure", err)
+	}
+	if strings.Contains(rec.String(), "invoke") || strings.Contains(rec.String(), "post") {
+		t.Fatalf("calls = %s, want neither invoke nor post", rec)
+	}
+}
+
+// The budget admits and refuses non-record kinds exactly like mentions: the
+// window floor counts the persona's own turns on the home topic.
+func TestWakeScheduleKindPassesBudgetGate(t *testing.T) {
+	rec := &recorder{}
+	cfg := testCfg(1)
+	cfg.Budget = Budget{WindowMax: 1, WindowPer: time.Hour}
+	realm := &fakeRealm{rec: rec, view: []Turn{
+		{OpID: "r0", Author: "clerk", Type: "turn.post", Body: "earlier outcome", Timestamp: time.Now()},
+	}}
+	w := Wake{Kind: KindSchedule, Topic: "home-topic", OpID: "42", Body: "tick"}
+	got, err := handleWake(context.Background(), cfg, realm,
+		invokeResult(rec, HarnessResult{OK: true, Text: "never"}), w, discard())
+	if err != nil || got != "refused" {
+		t.Fatalf("outcome = %q, %v", got, err)
+	}
+	if rec.String() != "read" {
+		t.Fatalf("calls = %s, want the read and nothing else", rec)
+	}
+}

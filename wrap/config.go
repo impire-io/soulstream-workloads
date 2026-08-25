@@ -10,7 +10,10 @@ import (
 
 // Config is one wrapped agent: the persona (the wrapper's whole authority is
 // that persona's own credential, resolved by the caller into the realm
-// client), the harness template, and the budgets.
+// client), the harness template, and the budgets. A declared agent
+// additionally carries its wake set, its home topic, and its instructions
+// source (DeclaredConfig maps a declaration onto these); with all three left
+// zero the engine is the mention-only wrapper, byte-for-byte.
 type Config struct {
 	Persona    string
 	Template   Template
@@ -20,6 +23,80 @@ type Config struct {
 	InboxLimit int // catch-up depth (0 = the protocol default of 50)
 	Budget     Budget
 	Unbudgeted bool // explicit opt-out: no wake budget, logged once at startup
+
+	// Wakes is the declared wake set. nil means the legacy mention-only
+	// engine (exactly today's behavior); non-nil means exactly what it
+	// lists — mention wakes run only if declared.
+	Wakes *WakeSet
+	// HomeTopic is the declaration's topic: where non-record wakes
+	// (schedule, subject) land their outcomes and self-reports.
+	HomeTopic string
+	// Instructions, when set, is materialised at every wake (lineage tip,
+	// digest-checked, in memory only) and delivered via {{INSTRUCTIONS}}.
+	Instructions InstructionSource
+}
+
+// WakeSet is what wakes a declared agent — the engine-side shape of the
+// declaration's wake entries (hq design 0005 §2).
+type WakeSet struct {
+	Mention   bool
+	Topics    []TopicWake
+	Schedules []ScheduleWake
+	Subjects  []SubjectWake
+}
+
+// TopicWake watches one topic path's ops stream: replay-exact, the whole
+// path history as backlog, outcome existence as the position. Ops authored
+// by the wrapped persona are excluded — the normative self-exclusion.
+type TopicWake struct {
+	Path  string
+	Types []string // empty = [turn.post]
+}
+
+// ScheduleWake is one named schedule: reconciled as a headered registration
+// on the system stream, woken by the server's ticks. TTL bounds the tick
+// backlog (0 = the server's default tick TTL).
+type ScheduleWake struct {
+	Name    string
+	Pattern string // @every <dur> | @at <RFC3339> | 6-field cron
+	TTL     time.Duration
+}
+
+// SubjectWake is a plain core-NATS subscription: at-most-once — a wake
+// arriving while the engine is down is lost, and declaring it declared that.
+type SubjectWake struct {
+	Subject string
+}
+
+// replayableTypes are the op types a topic wake can replay from the
+// materialised view during catch-up. Live delivery would carry any type, but
+// a type the engine cannot catch up would silently break replay-exact — so
+// it is refused up front.
+var replayableTypes = map[string]bool{
+	"turn.post": true, "comment.add": true, "comment.reply": true, "attachment.add": true,
+}
+
+// Validate refuses a wake set the engine cannot honor: an empty set (nothing
+// would ever wake the agent), non-record kinds without a home topic for
+// their outcomes, or a topic type outside the replay-exact set.
+func (s *WakeSet) Validate(homeTopic string) error {
+	if s == nil {
+		return nil
+	}
+	if !s.Mention && len(s.Topics) == 0 && len(s.Schedules) == 0 && len(s.Subjects) == 0 {
+		return fmt.Errorf("wrap: the wake set declares nothing — nothing would ever wake the agent")
+	}
+	if (len(s.Schedules) > 0 || len(s.Subjects) > 0) && homeTopic == "" {
+		return fmt.Errorf("wrap: schedule and subject wakes need a home topic for their outcomes")
+	}
+	for _, t := range s.Topics {
+		for _, ty := range t.Types {
+			if !replayableTypes[ty] {
+				return fmt.Errorf("wrap: topic wake on %s: type %q is not replay-exact from the view (accepted: turn.post, comment.add, comment.reply, attachment.add)", t.Path, ty)
+			}
+		}
+	}
+	return nil
 }
 
 // Budget bounds what wakes this wrapper admits (hq design 0006, research
