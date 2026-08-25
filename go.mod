@@ -28,7 +28,7 @@ require (
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/gowebpki/jcs v1.0.1 // indirect
-	github.com/impire-io/soulstream-core v0.11.1
+	github.com/impire-io/soulstream-core v0.14.0-rc.1
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.19.1 // indirect
