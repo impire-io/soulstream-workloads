@@ -22,7 +22,9 @@ type PersonaScopedCredential struct {
 // Minter issues per-workload scoped credentials. It is the single seam through
 // which soulstream-workloads obtains signing authority (design 0001 §4): the default holds
 // a soulstream-workloads-side key; an external authority could implement this later without
-// changing any workload contract.
+// changing any workload contract. Implementations MUST honor
+// Scope.Capabilities — narrow the credential to the declared selectors or
+// refuse the mint — never ignore it (hq design 0005 §5).
 type Minter interface {
 	Mint(s Scope, ttl time.Duration) (PersonaScopedCredential, error)
 }
@@ -68,6 +70,9 @@ func (m *SigningKeyMinter) Mint(s Scope, ttl time.Duration) (PersonaScopedCreden
 	}
 	if ttl <= 0 {
 		return PersonaScopedCredential{}, fmt.Errorf("minter: ttl must be positive")
+	}
+	if err := s.validateCapabilities(); err != nil {
+		return PersonaScopedCredential{}, err
 	}
 
 	ukp, err := nkeys.CreateUser()

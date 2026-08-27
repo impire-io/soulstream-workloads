@@ -197,7 +197,7 @@ func (d Declaration) Validate() error {
 		return fmt.Errorf("persona %q is not a valid persona name", d.Persona)
 	}
 
-	if err := validateTopicPath(d.Topic); err != nil {
+	if err := ValidateTopicPath(d.Topic); err != nil {
 		return err
 	}
 
@@ -218,7 +218,7 @@ func (d Declaration) Validate() error {
 		}
 	}
 	if d.Capabilities != nil {
-		if err := d.Capabilities.validate(); err != nil {
+		if err := d.Capabilities.Validate(); err != nil {
 			return err
 		}
 	}
@@ -235,7 +235,7 @@ func (d Declaration) Validate() error {
 }
 
 func (i Instructions) validate() error {
-	if err := validateTopicPath(i.Topic); err != nil {
+	if err := ValidateTopicPath(i.Topic); err != nil {
 		return fmt.Errorf("instructions: %w", err)
 	}
 	if strings.TrimSpace(i.Artefact) == "" {
@@ -244,7 +244,11 @@ func (i Instructions) validate() error {
 	return nil
 }
 
-func (c Capabilities) validate() error {
+// Validate enforces the capability grammar: the role a valid vault-entry
+// name, every tool a valid name, no duplicates. Exported as the single
+// source of that grammar — the minter re-validates at its own boundary
+// (a public surface must not rely on its callers).
+func (c Capabilities) Validate() error {
 	if !identity.ValidName(c.Role) {
 		return fmt.Errorf("capabilities: role %q is not a valid name (a vault entry name)", c.Role)
 	}
@@ -322,7 +326,7 @@ func (e WakeEntry) validate() error {
 		}); err != nil {
 			return err
 		}
-		if err := validateTopicPath(e.Path); err != nil {
+		if err := ValidateTopicPath(e.Path); err != nil {
 			return fmt.Errorf("topic wake: %w", err)
 		}
 		for _, t := range e.Types {
@@ -476,11 +480,13 @@ func (b BudgetSpec) validate() error {
 	return nil
 }
 
-// validateTopicPath accepts a soulstream topic path: dot-separated segments,
+// ValidateTopicPath accepts a soulstream topic path: dot-separated segments,
 // each a valid soulstream name (e.g. "q2-planning-ab12" or the nested
 // "acme-team.q2-planning-ab12"). The dot is soulstream's path separator
 // (topic.ChildPath), which also makes each segment a subject token.
-func validateTopicPath(path string) error {
+// Exported as the single source of the path grammar (the minter's tag
+// rendering checks values against it).
+func ValidateTopicPath(path string) error {
 	if path == "" {
 		return fmt.Errorf("topic is required")
 	}
@@ -561,7 +567,7 @@ func parseRecordArtifact(artifact string) (ArtifactRef, error) {
 	if strings.Contains(name, "/") {
 		return ArtifactRef{}, fmt.Errorf("artifact %q: the artefact name %q must not hold '/'", artifact, name)
 	}
-	if err := validateTopicPath(topicPath); err != nil {
+	if err := ValidateTopicPath(topicPath); err != nil {
 		return ArtifactRef{}, fmt.Errorf("artifact %q: %w", artifact, err)
 	}
 	return ArtifactRef{Scheme: SchemeSoulstream, Topic: topicPath, Name: name}, nil

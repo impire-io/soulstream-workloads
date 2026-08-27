@@ -154,3 +154,26 @@ func TestRunInvalidDeclarationRefused(t *testing.T) {
 		t.Fatalf("ops = %v, want none", tc.calls)
 	}
 }
+
+// capturingMinter records the scope it was asked to mint (spec 010 FR-001).
+type capturingMinter struct{ got minter.Scope }
+
+func (m *capturingMinter) Mint(s minter.Scope, _ time.Duration) (minter.PersonaScopedCredential, error) {
+	m.got = s
+	return minter.PersonaScopedCredential{Persona: s.Persona, NatsServers: []string{"nats://x"}}, nil
+}
+
+func TestLaunchForwardsCapabilitiesToTheMinter(t *testing.T) {
+	tc := &fakeTopic{}
+	cm := &capturingMinter{}
+	r := newRunner(cm, fakeBackend{status: backend.ExitStatus{Code: 0}})
+	d := validDecl()
+	d.Capabilities = &declaration.Capabilities{Role: "agent", Tools: []string{"toola"}}
+	if err := r.Run(context.Background(), tc, d); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	c := cm.got.Capabilities
+	if c == nil || c.Role != "agent" || len(c.Tools) != 1 || c.Tools[0] != "toola" {
+		t.Fatalf("minter saw scope %+v: capabilities not forwarded", cm.got)
+	}
+}
