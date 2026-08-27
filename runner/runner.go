@@ -76,7 +76,7 @@ func (r *Runner) Launch(ctx context.Context, tc TopicClient, d declaration.Decla
 	if ref.Scheme != declaration.SchemeFile && r.Artifacts == nil {
 		return nil, fmt.Errorf("runner: artifact %s is record-form and no artifact source is configured", d.Artifact)
 	}
-	cred, err := r.Minter.Mint(minter.Scope{Role: d.Role, Persona: d.Persona, Topic: d.Topic}, r.CredTTL)
+	cred, err := r.Minter.Mint(minter.Scope{Role: d.Role, Persona: d.Persona, Topic: d.Topic, Capabilities: d.Capabilities}, r.CredTTL)
 	if err != nil {
 		return nil, fmt.Errorf("runner: mint credential for %q: %w", d.Persona, err)
 	}
