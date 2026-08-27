@@ -92,3 +92,28 @@ The external (identity-backed) minter needs the scope rendered as mint tags (`pe
 - The account-template half (`SOULSTREAM.SVC.{{tag(tool)}}` and siblings) is the identity plane's exported surface, built in its own repo; the two halves are drift-courted by the product's consumer-position e2e (the cycle guard makes a shared constant impossible by construction).
 - Tag keys `tool`/`topic`/`persona` are the design 0005 §5 / fleet 0003 §5 vocabulary, dual-written on the identity side by necessity.
 - NATS lowercases tags at claim level; the shared name grammar is already lowercase-only, so no value changes shape in transit.
+
+## Amendment 2026-08-27 — the scoped lane is local-first (open amendment, same arc)
+
+Wiring the product surfaced a measured collision the plan had not priced:
+identity's binding-resolved lanes (`RoleForAccount` — the durable mint, the
+token lane's creation check, callout issuance) refuse a multi-role account
+as ambiguous, **by decided design** (D5 as amended; the M3 gate's proof 6
+measures exactly this refusal). Importing an agent role into the vault
+beside the realm's persona role would therefore break every token-lane
+sign-in on the deployment. The identity plane already names the unlock —
+"the token lane's named-role answer" (D28's named-not-built item) — and it
+is not this arc's to build.
+
+Resolution: the scoped mint ships **locally** — `ScopedSigningKeyMinter`
+beside the plain `SigningKeyMinter`, producing the identical D28 claim
+shape (permission-less scoped user, tags, TTL) signed by a deployment-held
+scoped role seed. The account template stays the entire policy; nothing
+about enforcement moves out of the server. The identity-plane op lane
+remains the fleet-era path for seedless nodes, gated on the token lane's
+named-role answer. FR-007's posture is unchanged: this repo still has no
+identity-plane dependency.
+
+- [x] T010 `minter/scoped.go` + `minter/scoped_test.go`: the scoped lane —
+      claim-shape unit (no own permissions, tags, expiry), refusals
+      (capability-less scope, grammar, zero TTL).
