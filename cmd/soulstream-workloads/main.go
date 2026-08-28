@@ -1,13 +1,18 @@
 // Command soulstream-workloads launches workloads onto a node:
-// `workload start <declaration-file>` runs one agent or tool (M1.1). The
-// personal agent wrapper is its own command, soulstream-wrap (specs/006) —
-// the daemon that once lived here as `waker serve` was cut the day it
-// landed, with its reversal condition recorded in design 0004 §9.
+// `workload start <declaration-file>` runs one agent or tool (M1.1), and
+// `dispatcher serve` runs the standing serve loop (specs/011) that makes
+// submit-and-forget real — the fleet's answer to the daemon that once
+// lived here as `waker serve`, cut the day it landed with its reversal
+// condition recorded in design 0004 §9 and fired by design 0007. The
+// personal agent wrapper is still its own command, soulstream-wrap
+// (specs/006).
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -24,8 +29,10 @@ import (
 	"github.com/impire-io/soulstream-workloads/backend/msb"
 	"github.com/impire-io/soulstream-workloads/backend/native"
 	"github.com/impire-io/soulstream-workloads/declaration"
+	"github.com/impire-io/soulstream-workloads/dispatcher"
 	"github.com/impire-io/soulstream-workloads/minter"
 	"github.com/impire-io/soulstream-workloads/runner"
+	"github.com/impire-io/soulstream-workloads/wrap"
 )
 
 func main() {
@@ -36,10 +43,15 @@ func main() {
 }
 
 func run(args []string) error {
-	if len(args) != 3 || args[0] != "workload" || args[1] != "start" {
-		return fmt.Errorf("usage: soulstream-workloads workload start <declaration-file>")
+	switch {
+	case len(args) == 3 && args[0] == "workload" && args[1] == "start":
+		return runWorkloadStart(args[2])
+	case len(args) == 2 && args[0] == "dispatcher" && args[1] == "serve":
+		return runDispatcherServe()
+	default:
+		return fmt.Errorf("usage: soulstream-workloads workload start <declaration-file>\n" +
+			"       soulstream-workloads dispatcher serve")
 	}
-	return runWorkloadStart(args[2])
 }
 
 func runWorkloadStart(file string) error {
@@ -102,6 +114,144 @@ func runWorkloadStart(file string) error {
 	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	return rw.Serve(sigCtx)
+}
+
+// runDispatcherServe runs this node's standing serve loop (specs/011).
+// Everything it reads is node-side configuration — none of it may appear
+// in a declaration (constitution III) — and the whole of it is the
+// deployment's, not an agent's.
+func runDispatcherServe() error {
+	realmName := os.Getenv("SOULSTREAM_REALM")
+	node := os.Getenv("SOULSTREAM_PERSONA")
+	placements := os.Getenv("SOULSTREAM_PLACEMENT_TOPIC")
+	credsDir := os.Getenv("SOULSTREAM_AGENT_CREDS_DIR")
+	if realmName == "" || node == "" || placements == "" || credsDir == "" {
+		return fmt.Errorf("SOULSTREAM_REALM, SOULSTREAM_PERSONA, SOULSTREAM_PLACEMENT_TOPIC and SOULSTREAM_AGENT_CREDS_DIR are all required")
+	}
+
+	ctx := context.Background()
+	nodeCfg := realmConfigFromEnv(realmName, node)
+	nodeCfg.CredsFile = os.Getenv("SOULSTREAM_CREDS")
+	client, err := realm.Connect(ctx, nodeCfg)
+	if err != nil {
+		return fmt.Errorf("connect to realm: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	template, err := harnessTemplate(client)
+	if err != nil {
+		return err
+	}
+
+	var knobErrs []error
+	knob := func(name string) time.Duration {
+		v, err := envDuration(name)
+		if err != nil {
+			knobErrs = append(knobErrs, err)
+		}
+		return v
+	}
+	d := &dispatcher.Dispatcher{
+		Node:         node,
+		Client:       client,
+		Placements:   placements,
+		ConnectAgent: agentCredsConnector(realmName, credsDir),
+		Engine: wrap.Config{
+			Template: template,
+			Scratch:  scratchRoot(),
+		},
+		Reclaim:      knob("SOULSTREAM_SWEEP_WINDOW"),
+		SweepEvery:   knob("SOULSTREAM_SWEEP_EVERY"),
+		ProbeTimeout: knob("SOULSTREAM_PROBE_TIMEOUT"),
+		PollEvery:    knob("SOULSTREAM_POLL_EVERY"),
+		Log:          slog.New(slog.NewTextHandler(os.Stderr, nil)),
+	}
+	if len(knobErrs) > 0 {
+		return errors.Join(knobErrs...)
+	}
+
+	// The stop ceremony is the operator's, chosen here deliberately (hq
+	// design 0007 §6): a signal drains, so an in-flight harness failure
+	// lands the agent's own self-report. A supervisor that wants crash
+	// semantics — nothing posted, the successor re-serving on the
+	// deterministic outcome id — kills the process instead.
+	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return d.Run(sigCtx)
+}
+
+// agentCredsConnector is the node's credential lane for served agents: a
+// directory holding one creds file per persona. It is the one lane a node
+// operator can wire with no new authority; a deployment that mints
+// per-serve credentials (hq design 0007 §5) substitutes its own
+// ConnectAgent instead — this command has no minting standing and no
+// soulstream-identity dependency.
+func agentCredsConnector(realmName, dir string) dispatcher.ConnectFunc {
+	return func(ctx context.Context, persona string) (*realm.Client, error) {
+		creds := filepath.Join(dir, persona+".creds")
+		if _, err := os.Stat(creds); err != nil {
+			return nil, fmt.Errorf("no credential for %s at %s: %w", persona, creds, err)
+		}
+		cfg := realmConfigFromEnv(realmName, persona)
+		cfg.CredsFile = creds
+		return realm.Connect(ctx, cfg)
+	}
+}
+
+// harnessTemplate resolves the harness this node runs served agents on:
+// a template file, or one of wrap's presets.
+//
+// The preset's tool door deliberately carries no persona and no
+// credential. One dispatcher serves many personas from one template, so
+// baking a lane identity into it would hand every agent's door the same
+// credential; the per-agent capability credential is the product's to
+// mint (hq design 0007 §5, spec 010's agent scope) and reaches the
+// harness through an operator-authored template until it does.
+func harnessTemplate(client *realm.Client) (wrap.Template, error) {
+	if path := os.Getenv("SOULSTREAM_HARNESS_TEMPLATE"); path != "" {
+		return wrap.LoadTemplate(path)
+	}
+	name := os.Getenv("SOULSTREAM_HARNESS")
+	if name == "" {
+		name = "claude"
+	}
+	return wrap.Preset(name, wrap.Lane{
+		URL:   client.Conn().ConnectedUrl(),
+		Realm: os.Getenv("SOULSTREAM_REALM"),
+	})
+}
+
+// realmConfigFromEnv builds the connection shape shared by the node and
+// every agent it serves. A URL and a saved context are alternatives, not
+// a pair — a dispatcher whose whole configuration arrives in its
+// environment has nothing to save a context from.
+func realmConfigFromEnv(realmName, persona string) realm.Config {
+	cfg := realm.Config{Realm: realmName, Persona: persona}
+	if url := os.Getenv("SOULSTREAM_URL"); url != "" {
+		cfg.URL = url
+		return cfg
+	}
+	cfg.ContextName = os.Getenv("SOULSTREAM_CONTEXT")
+	return cfg
+}
+
+// envDuration reads one optional liveness knob (design 0003 §6). Unset
+// takes the dispatcher's default; set-but-unreadable fails the node's
+// start, because a liveness bound silently falling back to a default is
+// how a fleet gets a reclaim window nobody chose.
+func envDuration(name string) (time.Duration, error) {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return 0, nil
+	}
+	v, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("%s=%q is not a duration: %w", name, raw, err)
+	}
+	if v <= 0 {
+		return 0, fmt.Errorf("%s=%q must be positive", name, raw)
+	}
+	return v, nil
 }
 
 // selectBackend maps the node-side backend choice (SOULSTREAM_BACKEND) to an
