@@ -72,6 +72,20 @@ type Declaration struct {
 	// Budget is the 0006 wake budget the engine admits wakes under. Agent-only;
 	// absent means the engine's defaults.
 	Budget *BudgetSpec `json:"budget,omitempty"`
+	// Inference names what serves the agent's thinking (hq design 0007 §3
+	// closing against soulstream-inference design 0001 §5): a VIRTUAL model
+	// name the deployment's catalogue resolves — never a concrete model, never
+	// a provider, never a credential. Absent means the ambient lane (the
+	// harness's own authentication, wrap's founding shape). Agent-only;
+	// resolution is the dispatcher's product wiring.
+	Inference *InferenceSpec `json:"inference,omitempty"`
+}
+
+// InferenceSpec is the declaration's inference requirement: a name, not a
+// route and not a grant. The strict parse refuses any other field here, so
+// a credential cannot ride the block by construction.
+type InferenceSpec struct {
+	Model string `json:"model"`
 }
 
 // Instructions is a reference to an artefact lineage on a topic.
@@ -206,8 +220,8 @@ func (d Declaration) Validate() error {
 	}
 
 	if d.Role != RoleAgent {
-		if d.Instructions != nil || d.Capabilities != nil || len(d.Wake) > 0 || d.Budget != nil {
-			return fmt.Errorf("instructions, capabilities, wake and budget are agent-only (role is %q)", d.Role)
+		if d.Instructions != nil || d.Capabilities != nil || len(d.Wake) > 0 || d.Budget != nil || d.Inference != nil {
+			return fmt.Errorf("instructions, capabilities, wake, budget and inference are agent-only (role is %q)", d.Role)
 		}
 		return nil
 	}
@@ -230,7 +244,24 @@ func (d Declaration) Validate() error {
 			return err
 		}
 	}
+	if d.Inference != nil {
+		if err := d.Inference.validate(); err != nil {
+			return err
+		}
+	}
 
+	return nil
+}
+
+func (i InferenceSpec) validate() error {
+	if i.Model == "" {
+		return fmt.Errorf("inference.model is required when the block is present — a name the catalogue resolves")
+	}
+	// The design's refusal by name (hq 0007 §3): a credential is not a
+	// model name, and the classic paste is caught where it happens.
+	if strings.HasPrefix(i.Model, "sk-") {
+		return fmt.Errorf("inference.model %q looks like a credential — the declaration names, custody grants", i.Model)
+	}
 	return nil
 }
 
