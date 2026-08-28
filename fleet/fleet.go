@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -92,9 +93,13 @@ type Node struct {
 	ProbeTimeout time.Duration
 
 	// owned tracks placements this node is running, so it can answer
-	// probes for them.
-	owned map[string]struct{}
-	sub   *nats.Subscription
+	// probes for them. Guarded by ownedMu: TryPlace and Release write it
+	// on the caller's goroutine while the probe subscription reads it on
+	// the connection's — unguarded, a peer probing mid-place is a data
+	// race (found by the dispatcher build, episode 0143).
+	ownedMu sync.Mutex
+	owned   map[string]struct{}
+	sub     *nats.Subscription
 }
 
 func (n *Node) reclaimBound() time.Duration {
@@ -117,7 +122,10 @@ func (n *Node) probeTimeout() time.Duration {
 func (n *Node) Start() error {
 	n.owned = map[string]struct{}{}
 	sub, err := n.Conn.Subscribe(ProbeSubject(n.ID), func(msg *nats.Msg) {
-		if _, ok := n.owned[string(msg.Data)]; ok {
+		n.ownedMu.Lock()
+		_, ok := n.owned[string(msg.Data)]
+		n.ownedMu.Unlock()
+		if ok {
 			_ = msg.Respond([]byte("alive"))
 			return
 		}
@@ -195,14 +203,18 @@ func (n *Node) TryPlace(ctx context.Context, h *topic.Handle, itemID string) (*P
 		}
 		return nil, fmt.Errorf("fleet: launch %s: %w", itemID, err)
 	}
+	n.ownedMu.Lock()
 	n.owned[itemID] = struct{}{}
+	n.ownedMu.Unlock()
 	return &Placement{ItemID: itemID, Decl: d, Run: run}, nil
 }
 
 // Release ends a placement this node owns: the workload stops and the
 // placement item closes as done.
 func (n *Node) Release(ctx context.Context, h *topic.Handle, p *Placement) error {
+	n.ownedMu.Lock()
 	delete(n.owned, p.ItemID)
+	n.ownedMu.Unlock()
 	if err := p.Run.Stop(ctx); err != nil {
 		return err
 	}
