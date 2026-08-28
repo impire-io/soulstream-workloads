@@ -1,6 +1,7 @@
 package declaration
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -38,6 +39,28 @@ func TestArtifactOptionalForEngineServedAgents(t *testing.T) {
 	}
 	if err := tool.Validate(); err == nil || !strings.Contains(err.Error(), "artifact") {
 		t.Fatalf("a tool still needs its artifact: %v", err)
+	}
+}
+
+// An absent artifact is absent on the wire too: a field that is optional
+// exactly where it is meaningless must not linger as an empty line on the
+// document a person reads back.
+func TestAbsentArtifactMarshalsAbsent(t *testing.T) {
+	d := Declaration{
+		Role: RoleAgent, Lifecycle: LifecycleService,
+		Persona: "clerk", Topic: "desk",
+		Wake: []WakeEntry{{Kind: WakeMention}},
+	}
+	body, err := json.Marshal(d)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(body), "artifact") {
+		t.Fatalf("the meaningless field lingers on the wire: %s", body)
+	}
+	d.Artifact = "file:///opt/agents/clerk"
+	if body, err = json.Marshal(d); err != nil || !strings.Contains(string(body), `"artifact":"file:///opt/agents/clerk"`) {
+		t.Fatalf("a declared artifact must still ride the wire: %v %s", err, body)
 	}
 }
 

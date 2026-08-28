@@ -55,7 +55,7 @@ type Declaration struct {
 	Lifecycle Lifecycle `json:"lifecycle"`
 	Persona   string    `json:"persona"`
 	Topic     string    `json:"topic"`
-	Artifact  string    `json:"artifact"`
+	Artifact  string    `json:"artifact,omitempty"`
 	Args      []string  `json:"args,omitempty"`
 
 	// Instructions references a stage-1 artefact lineage whose tip is the
