@@ -101,6 +101,14 @@ type Dispatcher struct {
 	// be empty: one dispatcher serves whatever personas its placements
 	// declare.
 	Engine wrap.Config
+	// EngineFor, when set, yields the engine config for ONE persona and
+	// Engine becomes the fallback for personas it declines (nil config,
+	// nil error). It exists because the tool door's credential is
+	// per-agent while Engine is per-node (episode 0143, finding 3): the
+	// template's MCP lane carries the persona's own authority, and one
+	// base config cannot hold many. An error refuses the placement —
+	// handed back for another node, never half-served.
+	EngineFor func(ctx context.Context, persona string) (*wrap.Config, error)
 	// Invoke runs one harness invocation. Nil is wrap's real harness.
 	Invoke wrap.Invoker
 
@@ -390,6 +398,17 @@ func (d *Dispatcher) startServe(ctx context.Context, h *topic.Handle, itemID str
 		return
 	}
 	base := d.Engine
+	if d.EngineFor != nil {
+		per, err := d.EngineFor(ctx, decl.Persona)
+		if err != nil {
+			_ = client.Close()
+			d.handBack(ctx, h, itemID, log, fmt.Errorf("engine for %s: %w", decl.Persona, err))
+			return
+		}
+		if per != nil {
+			base = *per
+		}
+	}
 	base.Scratch = filepath.Join(base.Scratch, itemID)
 	cfg, err := wrap.DeclaredConfig(base, decl, client)
 	if err != nil {

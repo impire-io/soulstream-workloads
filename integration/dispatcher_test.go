@@ -116,7 +116,7 @@ type dispatchNode struct {
 	agents []*realm.Client
 }
 
-func (r *dispatcherRig) startNode(t *testing.T, id string, invoke wrap.Invoker, log *slog.Logger) *dispatchNode {
+func (r *dispatcherRig) startNode(t *testing.T, id string, invoke wrap.Invoker, log *slog.Logger, mods ...func(*dispatcher.Dispatcher)) *dispatchNode {
 	t.Helper()
 	n := &dispatchNode{id: id, client: r.connect(t, id), done: make(chan struct{})}
 	d := &dispatcher.Dispatcher{
@@ -143,6 +143,9 @@ func (r *dispatcherRig) startNode(t *testing.T, id string, invoke wrap.Invoker, 
 		RaceBackoff:  500 * time.Millisecond,
 		DrainTimeout: 15 * time.Second,
 		Log:          log,
+	}
+	for _, mod := range mods {
+		mod(d)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	n.cancel = cancel
@@ -600,4 +603,88 @@ func TestDispatcherLeavesTheRunnerPathAlone(t *testing.T) {
 			t.Errorf("the %s placement gained events %v — it should be untouched", name, got)
 		}
 	}
+}
+
+// The engine becomes per-persona through EngineFor (design 0007 §5's
+// sharpened [O], episode 0143 finding 3): a node serving many personas
+// gives each agent its own engine config — the tool door's credential is
+// per-agent while Engine is per-node — with Engine the fallback for
+// personas the hook declines, and an error refusing the placement whole.
+func TestDispatcherEngineForPerPersona(t *testing.T) {
+	rig := startDispatcherRealm(t)
+
+	var mu sync.Mutex
+	engines := map[string]string{} // persona -> the ENGINE marker its harness ran under
+	invoke := func(_ context.Context, spec wrap.RunSpec) wrap.HarnessResult {
+		marker := ""
+		for _, line := range strings.Split(spec.Prompt, "\n") {
+			if v, ok := strings.CutPrefix(line, "ENGINE="); ok {
+				marker = v
+			}
+		}
+		mu.Lock()
+		engines[promptPersona(spec.Prompt)] = marker
+		mu.Unlock()
+		return wrap.HarnessResult{OK: true, Text: "served", Detail: "scripted"}
+	}
+
+	baseTpl := dispatcherTemplate()
+	baseTpl.Prompt += "\nENGINE=base"
+	ownTpl := dispatcherTemplate()
+	ownTpl.Prompt += "\nENGINE=own"
+	rig.startNode(t, "node-a", invoke, slog.New(&refusalCounter{}), func(d *dispatcher.Dispatcher) {
+		d.Engine.Template = baseTpl
+		base := d.Engine
+		d.EngineFor = func(_ context.Context, persona string) (*wrap.Config, error) {
+			switch persona {
+			case "clerk-a":
+				per := base
+				per.Template = ownTpl
+				return &per, nil
+			case "clerk-c":
+				return nil, context.DeadlineExceeded // any error: no engine for this persona
+			default:
+				return nil, nil // decline: Engine is the fallback
+			}
+		}
+	})
+
+	idA := rig.submit(t, "owner", mentionAgent("clerk-a", rig.room))
+	idB := rig.submit(t, "owner", mentionAgent("clerk-b", rig.room))
+	idC := rig.submit(t, "owner", mentionAgent("clerk-c", rig.room))
+	_ = idA
+	_ = idB
+
+	room := topic.Open(rig.owner, rig.room)
+	if _, err := room.PostTurn(context.Background(), "hello @clerk-a and @clerk-b"); err != nil {
+		t.Fatalf("mention: %v", err)
+	}
+	waitFor(t, "both engines answered", 15*time.Second, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return engines["clerk-a"] != "" && engines["clerk-b"] != ""
+	})
+	mu.Lock()
+	gotA, gotB := engines["clerk-a"], engines["clerk-b"]
+	mu.Unlock()
+	if gotA != "own" {
+		t.Fatalf("clerk-a ran under ENGINE=%q, want its own", gotA)
+	}
+	if gotB != "base" {
+		t.Fatalf("clerk-b ran under ENGINE=%q, want the fallback", gotB)
+	}
+
+	// The refused persona's placement is handed back — claimed, then
+	// abandoned, never half-served, and its agent never speaks.
+	waitFor(t, "clerk-c handed back", 10*time.Second, func() bool {
+		item := placementItem(t, rig.owner, rig.placements, idC)
+		events := liveEvents(item)
+		return len(events) >= 2 && events[len(events)-1] == "abandon"
+	})
+	mu.Lock()
+	if engines["clerk-c"] != "" {
+		mu.Unlock()
+		t.Fatal("a placement without an engine was served anyway")
+	}
+	mu.Unlock()
 }
