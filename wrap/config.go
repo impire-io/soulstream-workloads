@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/impire-io/soulstream-workloads/declaration"
 )
 
 // Config is one wrapped agent: the persona (the wrapper's whole authority is
@@ -199,7 +201,13 @@ func (c *Config) ApplyDefaults() {
 		c.RunTimeout = defaultRunTimeout
 	}
 	if !c.Unbudgeted && c.Budget == (Budget{}) {
-		c.Budget = Budget{MaxHops: defaultMaxHops, WindowMax: defaultWindowMax, WindowPer: defaultWindowPer}
+		// The numbers live in declaration.DefaultBudget — the package every
+		// consumer (screens included) already reads — so a surface showing
+		// the bounds a person runs under and the engine enforcing them
+		// cannot drift.
+		def := declaration.DefaultBudget
+		per, _ := time.ParseDuration(def.Window.Per)
+		c.Budget = Budget{MaxHops: def.MaxHops, WindowMax: def.Window.Max, WindowPer: per}
 	}
 }
 

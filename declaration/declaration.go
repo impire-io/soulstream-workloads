@@ -81,6 +81,17 @@ type Declaration struct {
 	Inference *InferenceSpec `json:"inference,omitempty"`
 }
 
+// DefaultBudget is the wake budget the engine applies when a declaration
+// carries none (design 0006's shipped defaults: depth 4, window 8 per 10
+// minutes). Exported here — beside the schema, in the package every
+// consumer already reads — because a surface that must SHOW the bounds a
+// person runs under needs the numbers from the source, not a restatement
+// that drifts silently. wrap consumes this value, so there is exactly one.
+var DefaultBudget = BudgetSpec{
+	MaxHops: 4,
+	Window:  &WindowSpec{Max: 8, Per: "10m"},
+}
+
 // InferenceSpec is the declaration's inference requirement: a name, not a
 // route and not a grant. The strict parse refuses any other field here, so
 // a credential cannot ride the block by construction.
@@ -215,8 +226,17 @@ func (d Declaration) Validate() error {
 		return err
 	}
 
-	if err := validateArtifact(d.Artifact); err != nil {
-		return err
+	// An engine-served agent (role agent WITH a wake set) runs the node's
+	// harness template, never a declared executable — requiring an artifact
+	// there made every screen and CLI write a dummy value to satisfy a
+	// validator (design 0007 §9's open, closed 2026-08-28: two independent
+	// consumers were writing file:///dev/null). Everything else still
+	// declares what to run.
+	engineServed := d.Role == RoleAgent && len(d.Wake) > 0
+	if d.Artifact != "" || !engineServed {
+		if err := validateArtifact(d.Artifact); err != nil {
+			return err
+		}
 	}
 
 	if d.Role != RoleAgent {

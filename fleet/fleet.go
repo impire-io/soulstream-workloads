@@ -54,6 +54,11 @@ func Submit(ctx context.Context, h *topic.Handle, d declaration.Declaration) (st
 		return "", fmt.Errorf("fleet: encode declaration: %w", err)
 	}
 	title := fmt.Sprintf("place %s as %s", d.Artifact, d.Persona)
+	if d.Artifact == "" {
+		// Engine-served agents may omit the artifact (they run the node's
+		// harness template); the title names the persona alone.
+		title = fmt.Sprintf("place agent %s", d.Persona)
+	}
 	return h.OpenWork(ctx, title, submissionMarker+string(body))
 }
 
