@@ -58,6 +58,20 @@ What already works:
   proves the protocol with a scripted harness; `make test-wrap` wakes a real
   `claude -p`. The central daemon is cut with its reversal recorded in
   design 0004 §9.
+- **Dispatcher — agents as infrastructure** (specs/011, from design
+  [`0007`](../soul-hq/02-DESIGN/soulstream-workloads/0007-agents-as-infrastructure.md)):
+  `soulstream-workloads dispatcher serve` is a standing process per fleet
+  node that makes **submit-and-forget** real. It watches the placement
+  topic live, races open placements through the ordinary claim path,
+  resumes from the log alone what it already owns — no new op, no
+  handshake — and serves each won agent declaration through the same wake
+  engine, so the submitter's laptop can close and the mention is still
+  answered exactly once. Liveness is the fleet's unchanged three-step:
+  probes veto live owners, a sweep reclaims a dead peer's work into a
+  fresh race. Stopping is a deliberate choice — a drain waits so an
+  in-flight failure self-reports; a kill posts nothing and the successor
+  answers instead. Credentials for served agents arrive through the
+  deployment's own hook; this package resolves none.
 
 The decided shape:
 
