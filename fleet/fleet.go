@@ -56,9 +56,13 @@ func Submit(ctx context.Context, h *topic.Handle, d declaration.Declaration) (st
 	return h.OpenWork(ctx, title, submissionMarker+string(body))
 }
 
-// placementOf reads a work item's declaration, or false when the item
-// is an ordinary one (a runner's own lifecycle item, say).
-func placementOf(item topic.WorkItem) (declaration.Declaration, bool) {
+// DeclarationOf reads a work item's declaration, or false when the item
+// is an ordinary one (a runner's own lifecycle item, say). Exported
+// because a caller that races placements through its own claim path
+// (the dispatcher of specs/011, serving agents through the wake engine
+// rather than Runner.Launch) must read the same body this package
+// writes — the placement wire format has exactly one definition.
+func DeclarationOf(item topic.WorkItem) (declaration.Declaration, bool) {
 	rest, ok := strings.CutPrefix(item.Body, submissionMarker)
 	if !ok {
 		return declaration.Declaration{}, false
@@ -162,7 +166,7 @@ func (n *Node) TryPlace(ctx context.Context, h *topic.Handle, itemID string) (*P
 	if !ok {
 		return nil, fmt.Errorf("fleet: no placement %s", itemID)
 	}
-	d, ok := placementOf(item)
+	d, ok := DeclarationOf(item)
 	if !ok {
 		return nil, fmt.Errorf("fleet: work item %s is not a placement", itemID)
 	}
@@ -220,7 +224,7 @@ func (n *Node) Sweep(ctx context.Context, h *topic.Handle) ([]string, error) {
 		if item.Status != topic.WorkClaimed || item.Owner == n.ID {
 			continue
 		}
-		if _, ok := placementOf(item); !ok {
+		if _, ok := DeclarationOf(item); !ok {
 			continue
 		}
 		if claimedAt, ok := lastClaimAt(item); !ok || time.Since(claimedAt) < n.reclaimBound() {
@@ -257,7 +261,7 @@ func OpenPlacements(mt *topic.MaterializedTopic) []topic.WorkItem {
 		if item.Status != topic.WorkOpen {
 			continue
 		}
-		if _, ok := placementOf(item); ok {
+		if _, ok := DeclarationOf(item); ok {
 			out = append(out, item)
 		}
 	}
